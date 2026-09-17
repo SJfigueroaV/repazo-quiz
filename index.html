@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arreglos de Objetos y Arreglos Dinámicos · Curso</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main><div class="content">
+
+  <div class="hero">
+    <h1>Arreglos de objetos<br>y arreglos dinámicos</h1>
+    <p class="lead">Un curso corto de Java, al estilo del curso de programación de la Universidad de Helsinki:
+      lees un poco, escribes código, el corrector te dice si está bien. Y repites.</p>
+    <a class="cta" href="parte1.html">Empezar con la Parte 1 →</a>
+  </div>
+
+  <h2>Cómo funciona</h2>
+  <p>El curso está partido en secciones cortas. Cada sección explica una idea con ejemplos que puedes ejecutar,
+    y justo después te pone <strong>ejercicios</strong> sobre esa idea. No hay ejercicios al final del capítulo:
+    están intercalados, porque la idea se aprende usándola de inmediato.</p>
+  <p>Cada ejercicio vive en su propia carpeta, con un archivo de plantilla que tiene un <code>TODO</code> donde va tu
+    código y unas pruebas que revisan tu solución. Escribes el código, corres el corrector, y él te dice qué falta:</p>
+
+  <div class="comando">./verificar.sh 1.3</div>
+  <p class="salida-label">resultado</p>
+  <div class="salida">Ejercicio 1.3: casillas ocupadas
+  ✔ un estante de 5 con 2 libros devuelve 2
+  ✔ un estante recién creado devuelve 0
+  ✘ un estante sin huecos devuelve 3
+      esperado: 3
+      obtenido: 2
+
+  2/3 pruebas — revisa los ✘ y vuelve a intentar</div>
+
+  <h2>Lo que necesitas</h2>
+  <ul>
+    <li><strong>Un JDK</strong> (Java 8 o superior). Comprueba con <code>java -version</code> y <code>javac -version</code>.
+      En Arch: <code>sudo pacman -S jdk-openjdk</code>.</li>
+    <li><strong>Un editor</strong>. Cualquiera sirve: Neovim, VS Code, IntelliJ.</li>
+    <li><strong>Una terminal</strong> abierta en la carpeta del curso, para correr <code>./verificar.sh</code>.</li>
+  </ul>
+  <p>No hay que instalar Maven, Gradle ni ninguna librería: el corrector es Java puro.</p>
+
+  <h2>Cómo están organizadas las carpetas</h2>
+  <pre><code>curso-arreglos/
+├── index.html, parte1.html, ...   ← el material que estás leyendo
+├── ejercicios/parte1/             ← aquí escribes tú
+│   └── 03-casillas-ocupadas/
+│       ├── Libro.java             ← clase ya escrita, no la toques
+│       ├── Estante.java           ← tu tarea (tiene el TODO)
+│       └── pruebas/Pruebas.java   ← lo que revisa el corrector
+├── soluciones/parte1/             ← mis soluciones (míralas después de intentar)
+└── verificar.sh                   ← el corrector</code></pre>
+
+  <p>Comandos del corrector:</p>
+  <table>
+    <tr><th>Comando</th><th>Qué hace</th></tr>
+    <tr><td><code>./verificar.sh</code></td><td>Corrige todos los ejercicios publicados.</td></tr>
+    <tr><td><code>./verificar.sh 1</code></td><td>Corrige toda la Parte 1.</td></tr>
+    <tr><td><code>./verificar.sh 1.3</code></td><td>Corrige solo el ejercicio 1.3.</td></tr>
+    <tr><td><code>./verificar.sh 1.3 -s</code></td><td>Corre las pruebas contra <em>mi</em> solución, para ver cómo se comporta.</td></tr>
+  </table>
+
+  <h2>El curso</h2>
+  <div class="cards">
+    <div class="card">
+      <p class="n">Parte 1 · 10 ejercicios</p>
+      <h3>Arreglos de objetos</h3>
+      <p>El arreglo que guarda objetos: por qué nace vacío, cómo esquivar el
+        <code>NullPointerException</code>, y cómo agregar y eliminar a mano.</p>
+    </div>
+    <div class="card">
+      <p class="n">Parte 2 · próximamente</p>
+      <h3>Listas dinámicas</h3>
+      <p><code>ArrayList</code>, genéricos, las operaciones de una lista, cómo recorrerla sin romperla
+        y qué hace por dentro para crecer.</p>
+    </div>
+    <div class="card">
+      <p class="n">Parte 3 · próximamente</p>
+      <h3>Diseño con colecciones</h3>
+      <p>Encapsular una lista dentro de una clase, elegir el elemento más prioritario, migrar de arreglo a lista,
+        y un proyecto final: la sala de urgencias.</p>
+    </div>
+  </div>
+
+  <div class="box nota">
+    <h4>Cómo estudiar esto</h4>
+    <p><strong>Escribe el código a mano.</strong> Copiar y pegar los ejemplos se siente productivo y no enseña nada:
+      lo que te hace programar es equivocarte al escribir y arreglarlo. Si un ejercicio te traba más de 20 minutos,
+      abre mi solución en <code>soluciones/</code>, entiéndela, ciérrala y vuelve a escribirla de memoria.</p>
+  </div>
+
+  <div class="pager">
+    <span></span>
+    <a class="next" href="parte1.html">
+      <span class="dir">Siguiente</span><br>
+      <span class="ttl">Parte 1 · Arreglos de objetos</span>
+    </a>
+  </div>
+
+</div></main>
+<script src="nav.js"></script>
+</body>
+</html>

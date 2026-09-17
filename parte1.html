@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parte 1 · Arreglos de objetos</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main><div class="content">
+
+  <p class="part-eyebrow">Parte 1</p>
+  <h1>Arreglos de objetos</h1>
+  <p class="lead">Un arreglo de objetos no guarda objetos: guarda <em>referencias</em> a objetos, y arranca sin
+    ninguna. Entender esa frase es la mitad de esta parte. La otra mitad es aprender a hacer a mano lo que después
+    una lista hará por ti.</p>
+
+  <div class="objetivos">
+    <h4>Al terminar esta parte</h4>
+    <ul>
+      <li>Sabes crear un arreglo, recorrerlo y consultar su tamaño.</li>
+      <li>Entiendes por qué un arreglo de objetos recién creado está lleno de <code>null</code>.</li>
+      <li>Reconoces y evitas el <code>NullPointerException</code> al recorrer un arreglo con huecos.</li>
+      <li>Sabes buscar, contar y promediar sobre un arreglo de objetos.</li>
+      <li>Puedes agregar y eliminar elementos a mano, manteniendo el arreglo compacto.</li>
+      <li>Puedes explicar por qué un arreglo estático no alcanza para un programa real.</li>
+    </ul>
+  </div>
+
+  <h2>1.1 El arreglo, en dos minutos</h2>
+
+  <p>Un <strong>arreglo</strong> es una fila de casillas numeradas, todas del mismo tipo. Se le pide el tamaño al
+    crearlo, y ese tamaño <strong>no cambia nunca</strong>. Las casillas empiezan con un valor por defecto: los
+    arreglos de números empiezan en <code>0</code>.</p>
+
+  <div class="filename">Repaso.java</div>
+  <pre><code>int[] notas = new int[4];      // 4 casillas, todas en 0
+
+System.out.println("Casillas: " + notas.length);
+System.out.println("La casilla 0 vale: " + notas[0]);
+
+notas[0] = 5;
+notas[1] = 3;
+
+for (int i = 0; i &lt; notas.length; i++) {
+    System.out.println("notas[" + i + "] = " + notas[i]);
+}</code></pre>
+
+  <p class="salida-label">salida</p>
+  <div class="salida">Casillas: 4
+La casilla 0 vale: 0
+notas[0] = 5
+notas[1] = 3
+notas[2] = 0
+notas[3] = 0</div>
+
+  <p>Tres cosas que conviene tener claras desde ya:</p>
+  <ul>
+    <li>El primer índice es <code>0</code> y el último es <code>length - 1</code>. Un arreglo de 4 casillas va de
+      <code>notas[0]</code> a <code>notas[3]</code>.</li>
+    <li><code>length</code> se escribe <strong>sin paréntesis</strong>: es una propiedad del arreglo, no un método.</li>
+    <li>Si pides una casilla que no existe, el programa se cae con
+      <code>ArrayIndexOutOfBoundsException</code>. Por eso el <code>for</code> siempre se escribe
+      <code>i &lt; notas.length</code>, nunca <code>i &lt;= notas.length</code>.</li>
+  </ul>
+
+  <div class="box nota">
+    <h4>Tres palabras parecidas que no son lo mismo</h4>
+    <p><code>arreglo.length</code> (un arreglo), <code>texto.length()</code> (un String) y <code>lista.size()</code>
+      (una lista, la Parte 2). Misma idea, tres formas distintas de escribirla. Es de los errores más comunes al
+      empezar.</p>
+  </div>
+
+  <div class="quiz" data-respuesta="b">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">En <code>int[] numeros = new int[5];</code>, ¿cuál es el último índice válido?</p>
+    <div class="ops">
+      <button data-op="a">5</button>
+      <button data-op="b">4</button>
+      <button data-op="c">Depende de cuántos números hayas guardado</button>
+    </div>
+    <p class="fb">El arreglo tiene 5 casillas, numeradas de <code>0</code> a <code>4</code>. Pedir
+      <code>numeros[5]</code> lanza <code>ArrayIndexOutOfBoundsException</code>. Y el tamaño no depende de cuántas
+      casillas hayas usado: son 5 desde el momento en que lo creas.</p>
+  </div>
+
+  <section class="ejercicio" data-id="1.1">
+    <header>
+      <span class="ej-num">Ejercicio 1.1</span>
+      <h3>Suma del arreglo</h3>
+      <span class="estrellas">★☆☆</span>
+    </header>
+    <p>Completa el método <code>sumar</code>, que devuelve la suma de todos los números del arreglo. Con un arreglo
+      vacío debe devolver <code>0</code>.</p>
+    <div class="filename">ejercicios/parte1/01-suma-del-arreglo/Calculadora.java</div>
+    <pre><code>public static int sumar(int[] numeros) {
+    // TODO
+}</code></pre>
+    <p>Por ejemplo, <code>sumar(new int[]{1, 2, 3})</code> devuelve <code>6</code>.</p>
+    <div class="comando">./verificar.sh 1.1</div>
+  </section>
+
+  <section class="ejercicio" data-id="1.2">
+    <header>
+      <span class="ej-num">Ejercicio 1.2</span>
+      <h3>El mayor de todos</h3>
+      <span class="estrellas">★☆☆</span>
+    </header>
+    <p>Completa el método <code>mayor</code>, que devuelve el número más grande del arreglo. Puedes suponer que el
+      arreglo tiene al menos un número.</p>
+    <div class="filename">ejercicios/parte1/02-el-mayor-de-todos/Calculadora.java</div>
+    <pre><code>public static int mayor(int[] numeros) {
+    // TODO
+}</code></pre>
+    <p>Cuidado con la tentación de empezar con <code>int mayor = 0;</code>: si todos los números son negativos, esa
+      solución devuelve <code>0</code>, que no está en el arreglo. Empieza suponiendo que el mayor es el primero.</p>
+    <div class="comando">./verificar.sh 1.2</div>
+  </section>
+
+  <h2>1.2 Un arreglo de objetos nace vacío</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Ves la diferencia entre un arreglo de números y un arreglo de objetos.</li>
+      <li>Entiendes que crear el arreglo y crear los objetos son dos pasos distintos.</li>
+    </ul>
+  </div>
+
+  <p>Hasta aquí guardamos números. Cuando el arreglo es de objetos, cambia algo importante. Un
+    <code>int[]</code> guarda los números <em>dentro</em> de sus casillas. Un <code>Persona[]</code> no guarda
+    personas: guarda <strong>referencias</strong>, o sea direcciones que apuntan a objetos que viven en otra parte
+    de la memoria. Y el valor por defecto de una referencia no es <code>0</code>, es <code>null</code>: "no apunto
+    a nada".</p>
+
+  <p>La comparación que se usa en clase: crear un arreglo de objetos es comprar un <strong>estante vacío</strong>.
+    Tener el estante no significa tener los zapatos. Los compartimentos existen, pero están vacíos, y cada zapato
+    hay que comprarlo por separado y ponerlo en su casilla.</p>
+
+  <div class="filename">Grupo.java</div>
+  <pre><code>Persona[] grupo = new Persona[3];   // PASO 1: el estante de 3 casillas
+
+System.out.println("Casillas del arreglo: " + grupo.length);
+System.out.println("La casilla 0 vale: " + grupo[0]);
+
+grupo[0] = new Persona("Ana", 20);      // PASO 2: cada objeto, uno por uno
+grupo[1] = new Persona("Carlos", 22);
+
+System.out.println("Ahora la casilla 0 vale: " + grupo[0]);
+System.out.println("Pero la casilla 2 sigue valiendo: " + grupo[2]);</code></pre>
+
+  <p class="salida-label">salida</p>
+  <div class="salida">Casillas del arreglo: 3
+La casilla 0 vale: null
+Ahora la casilla 0 vale: Ana, 20 años
+Pero la casilla 2 sigue valiendo: null</div>
+
+  <p>Así se ve la memoria después del paso 1 y después del paso 2:</p>
+
+  <div class="heap"><b>Después de: Persona[] grupo = new Persona[3];</b>
+
+grupo ---&gt; [ null | null | null ]     (¡todavía no existe ninguna Persona!)
+              [0]    [1]    [2]
+
+<b>Después de: grupo[0] = new Persona("Ana", 20);
+             grupo[1] = new Persona("Carlos", 22);</b>
+
+grupo ---&gt; [ 0x01 | 0x02 | null ]
+              |      |
+              v      v
+         +---------+ +------------+
+         | Persona | | Persona    |
+         | Ana, 20 | | Carlos, 22 |
+         +---------+ +------------+</div>
+
+  <p>Dicho de otra forma: <code>new Persona[3]</code> reserva 3 casillas; <code>new Persona(...)</code> crea una
+    persona. Son dos <code>new</code> distintos y hacen cosas distintas.</p>
+
+  <div class="quiz" data-respuesta="a">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">Después de ejecutar <code>Persona[] grupo = new Persona[3];</code>, ¿cuántos objetos
+      <code>Persona</code> existen en memoria?</p>
+    <div class="ops">
+      <button data-op="a">Ninguno</button>
+      <button data-op="b">Tres, vacíos</button>
+      <button data-op="c">Tres, con los atributos en null</button>
+    </div>
+    <p class="fb">Ninguno. Lo único que existe es el arreglo, con 3 casillas que valen <code>null</code>. Los
+      objetos aparecen cuando escribes <code>new Persona(...)</code>, una vez por cada uno.</p>
+  </div>
+
+  <section class="ejercicio" data-id="1.3">
+    <header>
+      <span class="ej-num">Ejercicio 1.3</span>
+      <h3>Casillas ocupadas</h3>
+      <span class="estrellas">★☆☆</span>
+    </header>
+    <p>En la carpeta del ejercicio hay una clase <code>Libro</code> ya escrita. Completa el método
+      <code>casillasOcupadas</code>, que recibe un estante y devuelve cuántas de sus casillas tienen un libro.
+      Las casillas vacías valen <code>null</code> y no se cuentan.</p>
+    <div class="filename">ejercicios/parte1/03-casillas-ocupadas/Estante.java</div>
+    <pre><code>public static int casillasOcupadas(Libro[] estante) {
+    // TODO
+}</code></pre>
+    <p>Un estante de 5 casillas con 2 libros devuelve <code>2</code>; un estante recién creado devuelve
+      <code>0</code>.</p>
+    <div class="comando">./verificar.sh 1.3</div>
+  </section>
+
+  <h2>1.3 La trampa del null</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Provocas a propósito un <code>NullPointerException</code> y aprendes a leer su mensaje.</li>
+      <li>Aplicas la regla de oro para recorrer arreglos con huecos.</li>
+    </ul>
+  </div>
+
+  <p>Si una casilla vale <code>null</code> y le pides un método, el programa se cae. Fíjate que la primera línea
+    sí funciona y la segunda no:</p>
+
+  <div class="filename">Trampa.java</div>
+  <pre><code>Persona[] grupo = new Persona[3];
+grupo[0] = new Persona("Ana", 20);
+
+System.out.println(grupo[0].getNombre());   // bien: la casilla 0 tiene una Persona
+System.out.println(grupo[1].getNombre());   // ¡CRASH! la casilla 1 está vacía</code></pre>
+
+  <p class="salida-label">salida</p>
+  <div class="salida">Ana
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "Persona.getNombre()" because "&lt;local1&gt;[1]" is null
+	at Trampa.main(Trampa.java:5)</div>
+
+  <p>El mensaje es más amable de lo que parece; dice exactamente lo que pasó:
+    <em>no pude invocar <code>Persona.getNombre()</code> porque la casilla <code>[1]</code> es null</em>. Y la
+    última línea te dice el archivo y el número de línea. Cuando veas un
+    <code>NullPointerException</code>, lee esas dos cosas antes que nada: qué método intentaste llamar y sobre
+    qué cosa vacía.</p>
+
+  <div class="box peligro">
+    <h4>Regla de oro</h4>
+    <p>Siempre que recorras un arreglo de objetos que pueda tener casillas vacías, pregunta primero si la casilla
+      tiene algo: <code>if (grupo[i] != null)</code>. Esta comprobación es la que separa un programa que funciona
+      de uno que se cae con datos reales.</p>
+  </div>
+
+  <p>El recorrido seguro se escribe de dos formas equivalentes. Con <code>if</code>:</p>
+
+  <pre><code>for (int i = 0; i &lt; grupo.length; i++) {
+    if (grupo[i] != null) {
+        System.out.println(grupo[i].getNombre());
+    }
+}</code></pre>
+
+  <p>O saltándose las casillas vacías con <code>continue</code>, que evita anidar:</p>
+
+  <pre><code>for (int i = 0; i &lt; grupo.length; i++) {
+    if (grupo[i] == null) {
+        continue;            // esta casilla no me interesa, sigo con la próxima
+    }
+    System.out.println(grupo[i].getNombre());
+}</code></pre>
+
+  <div class="quiz" data-respuesta="b">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">Con <code>grupo[1]</code> vacío, ¿cuál de estas dos líneas lanza
+      <code>NullPointerException</code>?</p>
+    <div class="ops">
+      <button data-op="a"><code>System.out.println(grupo[1]);</code></button>
+      <button data-op="b"><code>System.out.println(grupo[1].getNombre());</code></button>
+      <button data-op="c">Las dos</button>
+    </div>
+    <p class="fb">Solo la segunda. Imprimir una referencia vacía es legal: <code>println</code> escribe el texto
+      <code>null</code> y sigue. Lo que revienta es <strong>llamar a un método</strong> sobre algo que no existe.
+      Por eso el <code>null</code> a veces se esconde: aparece impreso en la pantalla en vez de dar error, hasta
+      que alguien le pide un método.</p>
+  </div>
+
+  <section class="ejercicio" data-id="1.4">
+    <header>
+      <span class="ej-num">Ejercicio 1.4</span>
+      <h3>Nombres sin huecos</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Completa el método <code>nombres</code>, que devuelve los nombres de las personas del arreglo separados por
+      coma y espacio, saltándose las casillas vacías.</p>
+    <div class="filename">ejercicios/parte1/04-nombres-sin-huecos/Nombres.java</div>
+    <pre><code>public static String nombres(Persona[] grupo) {
+    // TODO
+}</code></pre>
+    <p>Con <code>{ Ana, null, Carlos, null }</code> devuelve <code>"Ana, Carlos"</code>. Ojo con los extremos: no
+      debe sobrar una coma al principio ni al final, y si no hay ninguna persona debe devolver la cadena vacía
+      <code>""</code>.</p>
+    <div class="comando">./verificar.sh 1.4</div>
+  </section>
+
+  <section class="ejercicio" data-id="1.5">
+    <header>
+      <span class="ej-num">Ejercicio 1.5</span>
+      <h3>Imprimir el estante</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Completa el método <code>imprimir</code>, que imprime una línea por cada casilla del estante: el título del
+      libro si hay uno, o el aviso de que la casilla está vacía.</p>
+    <div class="filename">ejercicios/parte1/05-imprimir-el-estante/Estante.java</div>
+    <pre><code>public static void imprimir(Libro[] estante) {
+    // TODO
+}</code></pre>
+    <p class="salida-label">salida esperada para un estante de 3 casillas con 2 libros</p>
+    <div class="salida">[0] Effective Java
+[1] Casilla vacía
+[2] Clean Code</div>
+    <p>Las pruebas comparan el texto exacto, así que respeta los corchetes y los espacios.</p>
+    <div class="comando">./verificar.sh 1.5</div>
+  </section>
+
+  <h2>1.4 Buscar y calcular dentro de un arreglo de objetos</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Aplicas el patrón de búsqueda: recorrer y devolver al encontrar.</li>
+      <li>Aplicas el patrón acumulador para contar y promediar.</li>
+      <li>Sabes por qué los textos se comparan con <code>equals</code> y no con <code>==</code>.</li>
+    </ul>
+  </div>
+
+  <p>Casi todo lo que harás con un arreglo de objetos es una variación de dos patrones. El primero es
+    <strong>buscar</strong>: recorres, y en cuanto encuentras lo que querías, devuelves. Si el <code>for</code>
+    termina sin encontrar nada, devuelves <code>null</code>.</p>
+
+  <pre><code>public static Persona buscarPorNombre(Persona[] grupo, String nombre) {
+    for (int i = 0; i &lt; grupo.length; i++) {
+        if (grupo[i] != null &amp;&amp; grupo[i].getNombre().equals(nombre)) {
+            return grupo[i];       // encontrada: salgo de una vez
+        }
+    }
+    return null;                   // recorrí todo y no estaba
+}</code></pre>
+
+  <p>Fíjate en el orden de la condición: primero <code>grupo[i] != null</code> y después la comparación. Java
+    evalúa el <code>&amp;&amp;</code> de izquierda a derecha y se detiene en cuanto la primera parte es falsa, así
+    que nunca llega a pedirle el nombre a una casilla vacía. Si inviertes el orden, el programa se cae.</p>
+
+  <div class="box nota">
+    <h4>Con textos, siempre equals</h4>
+    <p><code>==</code> pregunta "¿son el mismo objeto?" y <code>equals</code> pregunta "¿dicen lo mismo?". Dos
+      Strings con el mismo contenido pueden ser objetos distintos, así que <code>nombre == "Ana"</code> a veces
+      funciona y a veces no, lo cual es peor que si nunca funcionara. Usa <code>equals</code>.</p>
+  </div>
+
+  <p>El segundo patrón es el <strong>acumulador</strong>: una variable fuera del <code>for</code> que va creciendo
+    mientras recorres. Aquí se usan dos, uno para sumar y otro para contar:</p>
+
+  <div class="filename">Estadisticas.java</div>
+  <pre><code>Persona[] grupo = new Persona[4];
+grupo[0] = new Persona("Ana", 20);
+grupo[2] = new Persona("Carlos", 22);
+
+int personas = 0;
+int sumaEdades = 0;
+
+for (int i = 0; i &lt; grupo.length; i++) {
+    if (grupo[i] == null) {
+        continue;
+    }
+    System.out.println("[" + i + "] " + grupo[i]);
+    personas++;
+    sumaEdades += grupo[i].getEdad();
+}
+
+System.out.println("Personas registradas: " + personas);
+System.out.println("Edad promedio: " + (double) sumaEdades / personas);</code></pre>
+
+  <p class="salida-label">salida</p>
+  <div class="salida">[0] Ana, 20 años
+[2] Carlos, 22 años
+Personas registradas: 2
+Edad promedio: 21.0</div>
+
+  <p>Dos detalles de ese promedio. El primero: se divide entre <code>personas</code> (las que existen de verdad),
+    no entre <code>grupo.length</code>, porque las casillas vacías no deben bajar el promedio. El segundo: sin el
+    <code>(double)</code>, Java dividiría dos enteros y te daría <code>21</code> en lugar de <code>21.0</code>; con
+    42 y 4 la diferencia sería entre <code>10.5</code> y <code>10</code>, que ya es un error de verdad.</p>
+
+  <section class="ejercicio" data-id="1.6">
+    <header>
+      <span class="ej-num">Ejercicio 1.6</span>
+      <h3>Buscar por nombre</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Completa el método <code>buscarPorNombre</code>, que devuelve la primera persona del arreglo con ese nombre,
+      o <code>null</code> si no hay ninguna. El arreglo puede tener casillas vacías.</p>
+    <div class="filename">ejercicios/parte1/06-buscar-por-nombre/Buscador.java</div>
+    <pre><code>public static Persona buscarPorNombre(Persona[] grupo, String nombre) {
+    // TODO
+}</code></pre>
+    <p>Devuelve la <code>Persona</code> completa, no su nombre. Una de las pruebas busca con un
+      <code>String</code> creado aparte, así que si comparas con <code>==</code> vas a fallar.</p>
+    <div class="comando">./verificar.sh 1.6</div>
+  </section>
+
+  <section class="ejercicio" data-id="1.7">
+    <header>
+      <span class="ej-num">Ejercicio 1.7</span>
+      <h3>Promedio del curso</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Completa el método <code>promedio</code>, que devuelve el promedio de las notas finales de los estudiantes,
+      ignorando las casillas vacías.</p>
+    <div class="filename">ejercicios/parte1/07-promedio-del-curso/Curso.java</div>
+    <pre><code>public static double promedio(Estudiante[] curso) {
+    // TODO
+}</code></pre>
+    <p>Si no hay ningún estudiante registrado debe devolver <code>0.0</code>. Es el caso importante del ejercicio:
+      si divides sin preguntar, con un curso vacío obtienes <code>NaN</code>, que se propaga por todo el programa
+      sin lanzar ninguna excepción.</p>
+    <div class="comando">./verificar.sh 1.7</div>
+  </section>
+
+  <h2>1.5 Agregar y eliminar a mano</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Llevas la cuenta de cuántos elementos reales tiene un arreglo.</li>
+      <li>Eliminas un elemento sin dejar huecos, desplazando los siguientes.</li>
+      <li>Amplías un arreglo lleno copiándolo a uno más grande.</li>
+    </ul>
+  </div>
+
+  <p>Un arreglo no sabe cuántos elementos "de verdad" tiene: solo sabe cuántas casillas existen. Si quieres una
+    colección que crece y se encoge, tienes que llevar la cuenta tú, con un atributo que normalmente se llama
+    <code>cantidad</code>. La regla del juego es: <strong>los elementos ocupan siempre las primeras
+    <code>cantidad</code> casillas, sin huecos en la mitad</strong>. Con esa regla, agregar al final es fácil:</p>
+
+  <pre><code>private Contacto[] contactos = new Contacto[10];
+private int cantidad = 0;
+
+public boolean agregar(Contacto contacto) {
+    if (cantidad == contactos.length) {
+        return false;              // no hay espacio
+    }
+    contactos[cantidad] = contacto;
+    cantidad++;
+    return true;
+}</code></pre>
+
+  <p>Eliminar cuesta más. Si borras el elemento de la posición 1 y lo dejas en <code>null</code>, rompes la regla:
+    queda un hueco en la mitad. Para mantener el arreglo compacto hay que <strong>correr una posición a la
+    izquierda</strong> todos los elementos que venían después (esto se llama <em>shifting</em>) y limpiar la última
+    casilla:</p>
+
+  <pre><code>public boolean eliminar(String nombre) {
+    for (int i = 0; i &lt; cantidad; i++) {
+        if (contactos[i].getNombre().equals(nombre)) {
+
+            for (int j = i; j &lt; cantidad - 1; j++) {
+                contactos[j] = contactos[j + 1];   // cada uno se corre un puesto
+            }
+
+            contactos[cantidad - 1] = null;        // limpio el duplicado del final
+            cantidad--;
+            return true;
+        }
+    }
+    return false;
+}</code></pre>
+
+  <p>Nota que el recorrido va hasta <code>cantidad</code> y no hasta <code>contactos.length</code>: más allá de
+    <code>cantidad</code> solo hay casillas vacías. Y como la regla garantiza que no hay huecos, dentro del
+    <code>for</code> ya no hace falta preguntar por <code>null</code>.</p>
+
+  <div class="quiz" data-respuesta="b">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">Una agenda compacta tiene 5 contactos en las posiciones 0 a 4. Eliminas el de la posición 2.
+      ¿Cuántos contactos hay que mover?</p>
+    <div class="ops">
+      <button data-op="a">1</button>
+      <button data-op="b">2</button>
+      <button data-op="c">4</button>
+    </div>
+    <p class="fb">Dos: los de las posiciones 3 y 4, que se corren a 2 y 3. Los de las posiciones 0 y 1 no se tocan.
+      En el peor caso (eliminar el primero) hay que mover casi todos, y ahí está el costo: eliminar de un arreglo
+      es lento cuando hay muchos elementos.</p>
+  </div>
+
+  <p>Queda el último problema: ¿y si el arreglo se llena? No se puede estirar, pero sí se puede
+    <strong>reemplazar por uno más grande</strong>. Se crea un arreglo nuevo, se copian los elementos y se apunta
+    la variable al nuevo. El viejo queda sin referencias y el recolector de basura lo limpia.</p>
+
+  <div class="filename">Ampliar.java</div>
+  <pre><code>Persona[] grupo = new Persona[2];
+grupo[0] = new Persona("Ana", 20);
+grupo[1] = new Persona("Carlos", 22);
+
+System.out.println("Capacidad antes: " + grupo.length);
+
+grupo = Arrays.copyOf(grupo, grupo.length * 2);   // copia en uno del doble de tamaño
+grupo[2] = new Persona("Diana", 25);
+
+System.out.println("Capacidad después: " + grupo.length);
+System.out.println(Arrays.toString(grupo));</code></pre>
+
+  <p class="salida-label">salida</p>
+  <div class="salida">Capacidad antes: 2
+Capacidad después: 4
+[Ana, 20 años, Carlos, 22 años, Diana, 25 años, null]</div>
+
+  <p><code>Arrays.copyOf</code> (de <code>java.util.Arrays</code>) hace el trabajo en una línea, pero por dentro no
+    hay magia: crea el arreglo nuevo y copia una por una. En el ejercicio 1.10 lo vas a escribir a mano, porque ese
+    bucle es justo el que hace una lista dinámica cuando se le acaba el espacio.</p>
+
+  <section class="ejercicio" data-id="1.8">
+    <header>
+      <span class="ej-num">Ejercicio 1.8</span>
+      <h3>Primer hueco</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Completa el método <code>agregar</code>, que coloca el libro en la <strong>primera casilla vacía</strong> del
+      estante y devuelve <code>true</code>. Si el estante está lleno, no debe cambiar nada y debe devolver
+      <code>false</code>.</p>
+    <div class="filename">ejercicios/parte1/08-primer-hueco/Estante.java</div>
+    <pre><code>public static boolean agregar(Libro[] estante, Libro libro) {
+    // TODO
+}</code></pre>
+    <p>Este método aprovecha los huecos que queden en la mitad, así que sirve para la otra convención: la del
+      arreglo que sí permite huecos.</p>
+    <div class="comando">./verificar.sh 1.8</div>
+  </section>
+
+  <section class="ejercicio" data-id="1.9">
+    <header>
+      <span class="ej-num">Ejercicio 1.9</span>
+      <h3>La agenda</h3>
+      <span class="estrellas">★★★</span>
+    </header>
+    <p>Este es el ejercicio grande de la parte: una clase completa que administra su propio arreglo. La clase
+      <code>Contacto</code> ya está escrita; tú completas los cinco métodos de <code>Agenda</code>.</p>
+    <div class="filename">ejercicios/parte1/09-la-agenda/Agenda.java</div>
+    <pre><code>public class Agenda {
+    private Contacto[] contactos = new Contacto[10];
+    private int cantidad = 0;
+
+    public boolean agregar(Contacto contacto) { /* TODO */ }
+    public Contacto buscar(String nombre)     { /* TODO */ }
+    public boolean eliminar(String nombre)    { /* TODO */ }
+    public int cantidad()                     { /* TODO */ }
+    public Contacto contactoEn(int indice)    { /* TODO */ }
+}</code></pre>
+    <ul>
+      <li><code>agregar</code> pone el contacto al final y devuelve <code>true</code>; con la agenda llena (10
+        contactos) devuelve <code>false</code>.</li>
+      <li><code>eliminar</code> quita el contacto con ese nombre y devuelve <code>true</code>, o <code>false</code>
+        si no existe. <strong>La agenda no puede quedar con huecos en la mitad.</strong></li>
+      <li><code>contactoEn</code> devuelve el contacto de esa posición, o <code>null</code> si la posición está
+        fuera de la agenda. Debe aguantar un índice negativo sin lanzar excepciones.</li>
+    </ul>
+    <div class="comando">./verificar.sh 1.9</div>
+  </section>
+
+  <section class="ejercicio" data-id="1.10">
+    <header>
+      <span class="ej-num">Ejercicio 1.10</span>
+      <h3>La agenda que crece</h3>
+      <span class="estrellas">★★★</span>
+    </header>
+    <p>Ahora la agenda no se rinde cuando se llena: se amplía. Empieza con 5 casillas y, cuando ya no cabe nadie,
+      crea un arreglo del <strong>doble</strong> de casillas, copia los contactos y se queda con el nuevo. Así
+      <code>agregar</code> siempre devuelve <code>true</code>.</p>
+    <p>La plantilla ya trae <code>buscar</code>, <code>cantidad</code> y <code>contactoEn</code> resueltos (son los
+      del ejercicio anterior). Tú completas <code>agregar</code> y <code>capacidad</code>.</p>
+    <div class="filename">ejercicios/parte1/10-la-agenda-que-crece/Agenda.java</div>
+    <pre><code>private Contacto[] contactos = new Contacto[5];
+private int cantidad = 0;
+
+public boolean agregar(Contacto contacto) {
+    // TODO: si ya no cabe, amplía primero
+    contactos[cantidad] = contacto;
+    cantidad++;
+    return true;
+}
+
+/** Devuelve cuántas casillas tiene el arreglo interno ahora mismo. */
+public int capacidad() {
+    // TODO
+}</code></pre>
+    <p>Con 5 contactos la capacidad sigue siendo 5; al agregar el sexto pasa a 10; al pasar de 10 pasa a 20. Escribe
+      la copia con un <code>for</code> a mano, no con <code>Arrays.copyOf</code>: la idea es verla por dentro.</p>
+    <div class="comando">./verificar.sh 1.10</div>
+  </section>
+
+  <div class="box pro">
+    <h4>Lo que acabas de escribir tiene nombre</h4>
+    <p>Un arreglo interno, un contador de cuántos elementos hay de verdad, y una ampliación automática al doble
+      cuando se llena: eso es un <strong>arreglo dinámico</strong>. Es exactamente lo que hace
+      <code>ArrayList</code> por dentro, y es de lo que trata la Parte 2. La diferencia es que ahí ya está escrito,
+      probado y optimizado por otra gente.</p>
+  </div>
+
+  <h2>1.6 Resumen de la Parte 1</h2>
+
+  <p>Lo que cuesta cada operación en un arreglo, contando cuántos elementos hay que tocar:</p>
+
+  <table class="resumen-tabla">
+    <tr><th>Operación</th><th>Cómo se hace</th><th>Costo</th></tr>
+    <tr><td>Leer o escribir por índice</td><td><code>arreglo[i]</code></td><td>Inmediato (O(1)): salta directo a la casilla</td></tr>
+    <tr><td>Saber el tamaño</td><td><code>arreglo.length</code></td><td>Inmediato (O(1))</td></tr>
+    <tr><td>Buscar por contenido</td><td>Recorrer con un <code>for</code></td><td>O(n): en el peor caso, todo el arreglo</td></tr>
+    <tr><td>Agregar al final</td><td><code>arreglo[cantidad++] = x</code></td><td>Inmediato (O(1))… mientras quede espacio</td></tr>
+    <tr><td>Eliminar del medio</td><td>Shifting a la izquierda</td><td>O(n): hay que mover los siguientes</td></tr>
+    <tr><td>Crecer</td><td>Arreglo nuevo + copiar todo</td><td>O(n): se copia elemento por elemento</td></tr>
+  </table>
+
+  <p>Y los tres límites que te vas a topar en cualquier programa real:</p>
+  <ol>
+    <li><strong>El tamaño es inmutable.</strong> Si reservaste 100 y llega el 101, el arreglo no puede crecer solo;
+      te toca crear otro y copiar.</li>
+    <li><strong>Eliminar es costoso.</strong> O dejas huecos <code>null</code> (y validas en todas partes), o
+      desplazas elementos a mano en cada borrado.</li>
+    <li><strong>Se desperdicia memoria.</strong> Si reservas 1.000 casillas para 10 elementos, el 99% de lo
+      reservado no se usa.</li>
+  </ol>
+
+  <div class="box info">
+    <h4>Cosas para recordar</h4>
+    <ul>
+      <li><code>new Persona[3]</code> crea casillas, no personas. Las casillas valen <code>null</code>.</li>
+      <li>Antes de llamar un método sobre una casilla, pregunta <code>!= null</code>.</li>
+      <li>Imprimir <code>null</code> no falla; llamarle un método sí.</li>
+      <li>Los índices van de <code>0</code> a <code>length - 1</code>.</li>
+      <li>Los textos se comparan con <code>equals</code>, nunca con <code>==</code>.</li>
+      <li>Si llevas un contador de elementos, recorre hasta <code>cantidad</code>, no hasta <code>length</code>.</li>
+    </ul>
+  </div>
+
+  <p>En la Parte 2 dejamos de hacer este trabajo a mano: llega <code>ArrayList</code>, la lista que crece sola.</p>
+
+  <div class="pager">
+    <a class="prev" href="index.html">
+      <span class="dir">Anterior</span><br>
+      <span class="ttl">Inicio · Cómo usar el curso</span>
+    </a>
+    <a class="next" href="index.html">
+      <span class="dir">Siguiente</span><br>
+      <span class="ttl">Parte 2 · Listas dinámicas (próximamente)</span>
+    </a>
+  </div>
+
+</div></main>
+<script src="nav.js"></script>
+</body>
+</html>
