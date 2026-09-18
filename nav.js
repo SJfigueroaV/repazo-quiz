@@ -5,10 +5,11 @@ const PARTS = [
   { file: "parte1.html", num: "1", title: "Arreglos de objetos" },
   { file: "parte2.html", num: "2", title: "Listas dinámicas (ArrayList)" },
   { file: "parte3.html", num: "3", title: "Diseño con colecciones" },
+  { file: "parte4.html", num: "4", title: "Colecciones en el mundo real" },
 ];
 
 // Ejercicios del curso completo (10 por parte).
-const TOTAL_EJERCICIOS = 30;
+const TOTAL_EJERCICIOS = 40;
 
 const current = location.pathname.split("/").pop() || "index.html";
 

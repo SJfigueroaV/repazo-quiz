@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parte 4 · Colecciones en el mundo real</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main><div class="content">
+
+  <p class="part-eyebrow">Parte 4</p>
+  <h1>Colecciones en el mundo real</h1>
+  <p class="lead">Las tres primeras partes cubren lo que necesitas para usar listas. Esta cubre lo que aparece en
+    cuanto el código se vuelve profesional: qué pasa en la memoria cuando dos variables apuntan al mismo objeto,
+    el iterador que hay debajo de cada for-each, listas que guardan objetos de <em>distintas</em> clases, listas
+    que nadie puede modificar, y cómo imprimir una factura que se vea como factura.</p>
+
+  <div class="objetivos">
+    <h4>Al terminar esta parte</h4>
+    <ul>
+      <li>Explicas con un dibujo qué vive en el Stack y qué en el Heap, y predices cuándo un cambio "se ve" desde
+        la lista.</li>
+      <li>Recorres y eliminas con un <code>Iterator</code> explícito, y sabes cuándo conviene sobre
+        <code>removeIf</code>.</li>
+      <li>Guardas objetos de clases distintas en una sola <code>List</code> gracias a una interfaz, y agregas tipos
+        nuevos sin tocar el código que los usa.</li>
+      <li>Distingues una copia, una vista de solo lectura y una lista inmutable (<code>List.of</code>,
+        <code>List.copyOf</code>), y proteges una clase tanto de lo que entra como de lo que sale.</li>
+      <li>Formateas salidas con <code>printf</code> y <code>String.format</code>: columnas, decimales y
+        separador de miles.</li>
+    </ul>
+  </div>
+
+  <div class="box nota">
+    <h4>Necesitas Java 11 o superior</h4>
+    <p>Esta parte usa <code>List.of</code> (Java 9), <code>List.copyOf</code> (Java 10) y
+      <code>String.repeat</code> (Java 11). Comprueba tu versión con <code>java -version</code>.</p>
+  </div>
+
+  <!-- ================================================================== -->
+  <h2>4.1 Stack, Heap y referencias compartidas</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Pones nombre a los dos lugares de la memoria que ya dibujaste en la Parte 1.</li>
+      <li>Entiendes por qué cambiar un objeto que sacaste con <code>get</code> cambia el de la lista…</li>
+      <li>…y por qué con un <code>Integer</code> o un <code>Double</code> eso no pasa.</li>
+    </ul>
+  </div>
+
+  <p>En la sección 1.2 dibujamos una variable apuntando a un arreglo y el arreglo apuntando a objetos. Esos dos
+    lados del dibujo tienen nombre:</p>
+  <ul>
+    <li>El <strong>Stack</strong> (pila) guarda las variables locales de cada método que se está ejecutando:
+      <code>int</code>, <code>double</code>, <code>boolean</code>… y las <strong>referencias</strong>. Es pequeño y
+      se limpia solo: cuando un método termina, sus variables desaparecen.</li>
+    <li>El <strong>Heap</strong> (montículo) guarda <strong>todos los objetos</strong>: cada cosa creada con
+      <code>new</code>, incluidos los arreglos y las listas. Ahí los objetos viven mientras alguien los apunte;
+      cuando nadie los apunta, el recolector de basura (<em>Garbage Collector</em>) los borra.</li>
+  </ul>
+
+  <p>Por eso <code>new Cliente[3]</code> hace una sola cosa en el Heap (el arreglo de 3 referencias en
+    <code>null</code>) y cada <code>new Cliente(...)</code> hace otra. Son dos instanciaciones distintas: primero el
+    estante, después cada objeto.</p>
+
+  <p>Ahora la consecuencia que más se usa en la práctica. Este programa saca un cliente de la lista, lo cambia, y
+    vuelve a mirar la lista:</p>
+
+  <div class="filename">Alias.java</div>
+  <pre><code>List&lt;Cliente&gt; cartera = new ArrayList&lt;&gt;();
+cartera.add(new Cliente("101", "Carlos", 1500000.0));
+cartera.add(new Cliente("102", "Diana", 2400000.0));
+
+Cliente c = cartera.get(1);        // c apunta al MISMO objeto que la casilla 1
+c.setCupo(3000000.0);              // lo cambio a través de c...
+
+System.out.println("Cupo leído desde la lista: " + cartera.get(1).getCupo());
+System.out.println("¿Es el mismo objeto? " + (c == cartera.get(1)));</code></pre>
+  <p class="salida-label">salida</p>
+  <div class="salida">Cupo leído desde la lista: 3000000.0
+¿Es el mismo objeto? true</div>
+
+  <p><code>get</code> no te entrega una copia del cliente: te entrega <strong>otra referencia al mismo
+    objeto</strong>. A eso se le llama <em>alias</em>. Así se ve la memoria:</p>
+
+  <div class="heap"><b> STACK (main)          HEAP</b>
+
+ cartera -------->  ArrayList (size = 2)
+                      elementData --&gt; [ 0x01 | 0x02 | null | ... ]
+                                         |      |
+                                         v      v
+                                 +---------+  +---------+
+                                 | Carlos  |  | Diana   |
+                                 | 1500000 |  | 3000000 |
+                                 +---------+  +---------+
+                                                   ^
+ c ------------------------------------------------+</div>
+
+  <p>Hay un solo objeto Diana, con dos flechas que llegan a él. Cambiarlo por cualquiera de las dos es cambiarlo.
+    Por eso, para actualizar un objeto de la lista, <strong>no hace falta <code>set</code></strong>: lo buscas,
+    llamas a su <em>setter</em>, y listo. <code>set(i, otro)</code> es para <em>reemplazar</em> el objeto de la
+    casilla por uno distinto.</p>
+
+  <h3>La excepción: las envolventes no se pueden modificar</h3>
+
+  <p>Con una lista de números la historia cambia. Mira:</p>
+
+  <div class="filename">Envolventes.java</div>
+  <pre><code>List&lt;Integer&gt; puntos = new ArrayList&lt;&gt;();
+puntos.add(10);
+puntos.add(20);
+
+for (Integer p : puntos) {
+    p = p + 5;                     // cambia la variable p, no la lista
+}
+System.out.println("Con for-each: " + puntos);
+
+for (int i = 0; i &lt; puntos.size(); i++) {
+    puntos.set(i, puntos.get(i) + 5);   // reemplaza la casilla
+}
+System.out.println("Con set:      " + puntos);</code></pre>
+  <p class="salida-label">salida</p>
+  <div class="salida">Con for-each: [10, 20]
+Con set:      [15, 25]</div>
+
+  <p><code>Integer</code>, <code>Double</code>, <code>String</code> y compañía son <strong>inmutables</strong>: no
+    tienen <em>setters</em>, ningún método los cambia por dentro. <code>p + 5</code> crea un
+    <code>Integer</code> <em>nuevo</em>, y <code>p = ...</code> solo mueve la flecha de la variable
+    <code>p</code> hacia él. La casilla de la lista sigue apuntando al viejo. Para cambiar lo que guarda la lista,
+    tienes que poner el nuevo en la casilla, con <code>set</code>.</p>
+
+  <div class="box peligro">
+    <h4>La regla</h4>
+    <p>Objeto con <em>setters</em> (<code>Cliente</code>, <code>Producto</code>): lo buscas y lo cambias, la lista
+      lo ve. Objeto inmutable (<code>Integer</code>, <code>Double</code>, <code>String</code>): no se puede cambiar,
+      solo reemplazar con <code>set(i, nuevo)</code>. Asignar a la variable del for-each nunca cambia la lista.</p>
+  </div>
+
+  <div class="quiz" data-respuesta="b">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">Tienes <code>List&lt;Producto&gt; lista</code> con un producto de precio 100. Ejecutas
+      <code>Producto p = lista.get(0); p = new Producto("X", 500);</code>. ¿Qué precio tiene ahora
+      <code>lista.get(0)</code>?</p>
+    <div class="ops">
+      <button data-op="a">500, porque <code>p</code> apuntaba a la casilla 0</button>
+      <button data-op="b">100: la segunda línea solo movió la flecha de <code>p</code></button>
+      <button data-op="c">No compila</button>
+    </div>
+    <p class="fb">Asignar a una variable nunca toca el objeto al que apuntaba antes: solo cambia hacia dónde
+      apunta la variable. La casilla 0 sigue con su producto de 100. Otra cosa sería
+      <code>p.setPrecio(500)</code>, que sí cambia el objeto compartido.</p>
+  </div>
+
+  <section class="ejercicio" data-id="4.1">
+    <header>
+      <span class="ej-num">Ejercicio 4.1</span>
+      <h3>Subir el cupo</h3>
+      <span class="estrellas">★☆☆</span>
+    </header>
+    <p>Completa <code>subirCupo</code>: busca al cliente por cédula y cámbiale el cupo. Devuelve
+      <code>true</code> si lo encontró y <code>false</code> si no.</p>
+    <div class="filename">ejercicios/parte4/01-subir-el-cupo/Cartera.java</div>
+    <pre><code>public static boolean subirCupo(List&lt;Cliente&gt; cartera, String cedula, double nuevoCupo) {
+    // TODO
+}</code></pre>
+    <p>Hay una prueba que guarda una referencia al cliente <em>antes</em> de llamar tu método y después revisa que
+      la lista siga teniendo ese mismo objeto. Si lo reemplazas con <code>set(i, new Cliente(...))</code>, el cupo
+      queda bien pero esa prueba falla: se pidió modificar, no reemplazar.</p>
+    <div class="comando">./verificar.sh 4.1</div>
+  </section>
+
+  <section class="ejercicio" data-id="4.2">
+    <header>
+      <span class="ej-num">Ejercicio 4.2</span>
+      <h3>El aumento</h3>
+      <span class="estrellas">★☆☆</span>
+    </header>
+    <p>Completa <code>aumentar</code>, que sube todos los precios de la lista en un porcentaje. Con 10%, un precio
+      de <code>100.0</code> queda en <code>110.0</code>.</p>
+    <div class="filename">ejercicios/parte4/02-el-aumento/Precios.java</div>
+    <pre><code>public static void aumentar(List&lt;Double&gt; precios, double porcentaje) {
+    // TODO
+}</code></pre>
+    <p>Intenta primero con un for-each y mira qué dicen las pruebas. Después arréglalo.</p>
+    <div class="comando">./verificar.sh 4.2</div>
+  </section>
+
+  <!-- ================================================================== -->
+  <h2>4.2 El iterador: lo que hay debajo del for-each</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Ves en qué se convierte un for-each cuando se compila.</li>
+      <li>Eliminas con <code>it.remove()</code> sin provocar <code>ConcurrentModificationException</code>.</li>
+      <li>Eliges entre <code>for</code> hacia atrás, <code>Iterator</code> y <code>removeIf</code>.</li>
+    </ul>
+  </div>
+
+  <p>En la sección 2.4 dijimos que un for-each "le pide un iterador a la lista". Es literal: el compilador
+    convierte el primer bloque en el segundo.</p>
+
+  <pre><code>// lo que escribes
+for (String codigo : codigos) {
+    System.out.println(codigo);
+}
+
+// lo que Java ejecuta
+Iterator&lt;String&gt; it = codigos.iterator();
+while (it.hasNext()) {
+    String codigo = it.next();
+    System.out.println(codigo);
+}</code></pre>
+
+  <p>Un <code>Iterator</code> es un objeto que sabe recorrer una colección, y tiene tres métodos:</p>
+  <table class="resumen-tabla">
+    <tr><th>Método</th><th>Qué hace</th></tr>
+    <tr><td><code>it.hasNext()</code></td><td>¿Queda algún elemento por visitar?</td></tr>
+    <tr><td><code>it.next()</code></td><td>Avanza y devuelve el siguiente elemento.</td></tr>
+    <tr><td><code>it.remove()</code></td><td>Elimina de la lista el último elemento que devolvió <code>next()</code>.</td></tr>
+  </table>
+
+  <p>El for-each esconde el iterador, y con él el único <code>remove</code> seguro. Si escribes el iterador a mano,
+    lo tienes disponible:</p>
+
+  <div class="filename">ConIterador.java</div>
+  <pre><code>List&lt;String&gt; codigos = new ArrayList&lt;&gt;();
+codigos.add("CTA-01");
+codigos.add("CTA-02");
+codigos.add("CTA-03");
+
+Iterator&lt;String&gt; it = codigos.iterator();   // import java.util.Iterator;
+while (it.hasNext()) {
+    String codigo = it.next();
+    if (codigo.equals("CTA-02")) {
+        it.remove();               // borra el último que devolvió next()
+    }
+}
+System.out.println(codigos);</code></pre>
+  <p class="salida-label">salida</p>
+  <div class="salida">[CTA-01, CTA-03]</div>
+
+  <p>¿Por qué este <code>remove</code> sí funciona y <code>codigos.remove(codigo)</code> no? Recuerda el contador
+    de modificaciones de la sección 2.4: la lista lleva la cuenta, y el iterador guarda una copia para detectar
+    cambios hechos a sus espaldas. <code>it.remove()</code> borra <strong>y actualiza su copia</strong>, así que los
+    números siguen coincidiendo. Además acomoda su posición interna para no saltarse el elemento que se corrió a
+    la izquierda.</p>
+
+  <p>Tiene una sola regla: <code>remove()</code> borra lo que devolvió el último <code>next()</code>, así que hay
+    que llamar <code>next()</code> antes, y no se puede llamar <code>remove()</code> dos veces seguidas. Si no:</p>
+
+  <div class="filename">DobleRemove.java</div>
+  <pre><code>Iterator&lt;String&gt; it = codigos.iterator();
+it.remove();                       // todavía no has llamado next()</code></pre>
+  <p class="salida-label">salida</p>
+  <div class="salida">Exception in thread "main" java.lang.IllegalStateException
+	at java.base/java.util.ArrayList$Itr.remove(ArrayList.java:1071)
+	at DobleRemove.main(DobleRemove.java:9)</div>
+
+  <h3>¿Cuál de las tres formas uso?</h3>
+  <table class="resumen-tabla">
+    <tr><th>Forma</th><th>Cuándo</th></tr>
+    <tr><td><code>lista.removeIf(x -&gt; ...)</code></td><td>Solo quieres borrar los que cumplen una condición. Es la
+      más corta y la primera opción.</td></tr>
+    <tr><td><code>Iterator</code> + <code>it.remove()</code></td><td>Además de borrar, tienes que <em>hacer algo</em>
+      con cada eliminado: guardarlo, contarlo, registrarlo en un historial.</td></tr>
+    <tr><td><code>for</code> hacia atrás</td><td>Necesitas el índice de cada elemento. Funciona, pero es el más fácil
+      de escribir mal.</td></tr>
+  </table>
+
+  <div class="quiz" data-respuesta="a">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">Dentro del <code>while</code> de <code>ConIterador</code>, cambias <code>it.remove()</code>
+      por <code>codigos.remove(codigo)</code>. ¿Qué pasa?</p>
+    <div class="ops">
+      <button data-op="a">Lo mismo que con el for-each: el iterador detecta el cambio y puede lanzar
+        <code>ConcurrentModificationException</code></button>
+      <button data-op="b">Funciona igual, porque ahora el iterador es explícito</button>
+      <button data-op="c">No compila</button>
+    </div>
+    <p class="fb">Escribir el iterador a mano no lo vuelve seguro: lo seguro es borrar <em>a través</em> de él. Si
+      borras directo en la lista, el iterador ve que el contador de modificaciones cambió sin su permiso, igual
+      que en un for-each. (Con estos datos en concreto el bucle termina sin excepción y sin revisar CTA-03: es el
+      caso del penúltimo, el de la sección 2.4.)</p>
+  </div>
+
+  <section class="ejercicio" data-id="4.3">
+    <header>
+      <span class="ej-num">Ejercicio 4.3</span>
+      <h3>Depurar cuentas</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Completa <code>depurarInactivas</code>: elimina de la lista las cuentas inactivas y devuelve los códigos de
+      las que eliminaste, en el orden en que estaban.</p>
+    <div class="filename">ejercicios/parte4/03-depurar-cuentas/Depuracion.java</div>
+    <pre><code>public static List&lt;String&gt; depurarInactivas(List&lt;Cuenta&gt; cuentas) {
+    // TODO
+}</code></pre>
+    <p>Es el caso de la segunda fila de la tabla: borrar y además guardar lo borrado. Resuélvelo con un
+      <code>Iterator</code>. Las pruebas incluyen dos inactivas seguidas y una en la penúltima posición, que son los
+      casos donde un for-each con <code>remove</code> falla.</p>
+    <div class="comando">./verificar.sh 4.3</div>
+  </section>
+
+  <!-- ================================================================== -->
+  <h2>4.3 Una lista, muchos tipos: interfaces y polimorfismo</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Escribes una interfaz y dos clases que la implementan.</li>
+      <li>Guardas objetos de las dos clases en una sola <code>List</code>.</li>
+      <li>Entiendes quién decide qué método se ejecuta: la variable o el objeto.</li>
+    </ul>
+  </div>
+
+  <p>Hasta ahora cada lista guardaba una sola clase: <code>List&lt;Cliente&gt;</code>,
+    <code>List&lt;Producto&gt;</code>. Pero un carrito de compras real mezcla cosas muy distintas: un servicio de
+    hosting se cobra por meses, un router se cobra por precio más envío según el peso. No se calculan igual y no
+    tienen los mismos atributos. ¿Una lista para cada tipo? Entonces cada suma, cada recorrido y cada impresión
+    habría que escribirlos dos veces, y una tercera vez cuando llegue el tercer tipo.</p>
+
+  <p>La salida es preguntarse qué tienen <strong>en común</strong>. Para el carrito, las dos cosas son
+    <em>facturables</em>: tienen un detalle que imprimir y un importe que cobrar. Eso se escribe como una
+    <strong>interfaz</strong>:</p>
+
+  <div class="filename">Facturable.java</div>
+  <pre><code>public interface Facturable {
+    String getDetalle();
+    double calcularImporte();
+}</code></pre>
+
+  <p>Una interfaz es un <strong>contrato</strong>: lista qué métodos hay, sin decir cómo se hacen (no tienen
+    cuerpo, solo punto y coma). Cada clase que <code>implements Facturable</code> se compromete a escribirlos, cada
+    una a su manera:</p>
+
+  <pre><code>public class ServicioDigital implements Facturable {
+    private String nombre;
+    private double costoMensual;
+    private int meses;
+
+    // constructor...
+
+    @Override
+    public String getDetalle() {
+        return nombre + " [" + meses + " meses]";
+    }
+
+    @Override
+    public double calcularImporte() {
+        return costoMensual * meses;
+    }
+}
+
+public class ProductoFisico implements Facturable {
+    private String descripcion;
+    private double precio;
+    private double pesoKg;
+
+    // constructor...
+
+    @Override
+    public String getDetalle() {
+        return descripcion + " (" + pesoKg + " kg)";
+    }
+
+    @Override
+    public double calcularImporte() {
+        double envio = pesoKg &gt; 1.0 ? 25000.0 : 10000.0;
+        return precio + envio;
+    }
+}</code></pre>
+
+  <p>Y ahora sí, una sola lista para los dos:</p>
+
+  <div class="filename">CarritoDemo.java</div>
+  <pre><code>List&lt;Facturable&gt; carrito = new ArrayList&lt;&gt;();
+carrito.add(new ServicioDigital("Hosting web", 45000.0, 6));
+carrito.add(new ProductoFisico("Router WiFi", 180000.0, 0.8));
+carrito.add(new ProductoFisico("Impresora láser", 650000.0, 7.5));
+
+double total = 0;
+for (Facturable item : carrito) {
+    System.out.println(item.getDetalle() + " -&gt; " + item.calcularImporte());
+    total += item.calcularImporte();
+}
+System.out.println("Total: " + total);</code></pre>
+  <p class="salida-label">salida</p>
+  <div class="salida">Hosting web [6 meses] -&gt; 270000.0
+Router WiFi (0.8 kg) -&gt; 190000.0
+Impresora láser (7.5 kg) -&gt; 675000.0
+Total: 1135000.0</div>
+
+  <p>Fíjate en el <code>for</code>: la misma línea <code>item.calcularImporte()</code> hizo una multiplicación la
+    primera vuelta y una suma con envío las otras dos. El bucle no sabe ni le importa qué clase es cada ítem: le
+    pregunta al objeto y el objeto responde con <em>su</em> versión. Eso es el <strong>polimorfismo</strong>
+    ("muchas formas"): una misma llamada, un comportamiento distinto según el objeto.</p>
+
+  <h3>La variable decide qué puedes pedir; el objeto decide qué se ejecuta</h3>
+
+  <p>Esta es la regla que ordena todo, y el compilador la hace cumplir. El <strong>tipo de la variable</strong>
+    (<code>Facturable</code>) decide qué métodos puedes llamar. El <strong>objeto real</strong> (un
+    <code>ProductoFisico</code>) decide qué código corre. Si pides algo que no está en el contrato, no compila,
+    aunque el objeto lo tenga:</p>
+
+  <pre><code>List&lt;Facturable&gt; carrito = new ArrayList&lt;&gt;();
+carrito.add(new Regalo());         // Regalo tiene un método getPeso()...
+carrito.get(0).getPeso();          // ...pero Facturable no</code></pre>
+  <p class="salida-label">salida del compilador</p>
+  <div class="salida">SoloContrato.java:7: error: cannot find symbol
+        carrito.get(0).getPeso();
+                      ^
+  symbol:   method getPeso()
+  location: interface Facturable</div>
+
+  <p>Los otros dos errores que vas a ver seguro, con su traducción:</p>
+  <table class="resumen-tabla">
+    <tr><th>Error</th><th>Qué significa</th></tr>
+    <tr><td><code>Facturable is abstract; cannot be instantiated</code></td><td>Escribiste
+      <code>new Facturable()</code>. Una interfaz es solo un contrato: no se pueden crear objetos de ella, solo de
+      las clases que la implementan.</td></tr>
+    <tr><td><code>Regalo is not abstract and does not override abstract method calcularImporte() in
+      Facturable</code></td><td>Dijiste <code>implements Facturable</code> pero te faltó escribir uno de los
+      métodos del contrato. Ese mensaje te dice cuál.</td></tr>
+  </table>
+
+  <div class="box nota">
+    <h4>¿Facturable o IFacturable?</h4>
+    <p>En algunos materiales verás las interfaces con una <code>I</code> delante (<code>IFacturable</code>). Es una
+      costumbre de C#. En Java lo normal es nombrarlas sin prefijo, como las de la propia biblioteca:
+      <code>List</code>, <code>Comparable</code>, <code>Iterator</code>. Las dos compilan igual.</p>
+  </div>
+
+  <div class="quiz" data-respuesta="c">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">Con <code>Facturable f = new ServicioDigital("Hosting", 45000.0, 6);</code>, ¿qué método se
+      ejecuta en <code>f.calcularImporte()</code>?</p>
+    <div class="ops">
+      <button data-op="a">El de <code>Facturable</code></button>
+      <button data-op="b">Ninguno: no compila, porque <code>f</code> es una interfaz</button>
+      <button data-op="c">El de <code>ServicioDigital</code></button>
+    </div>
+    <p class="fb">La interfaz no tiene código que ejecutar, solo la firma. Compila porque
+      <code>calcularImporte</code> está en el contrato de <code>Facturable</code>, y al ejecutarse corre la versión
+      del objeto real, que es un <code>ServicioDigital</code>: 45.000 × 6.</p>
+  </div>
+
+  <section class="ejercicio" data-id="4.4">
+    <header>
+      <span class="ej-num">Ejercicio 4.4</span>
+      <h3>El servicio digital</h3>
+      <span class="estrellas">★☆☆</span>
+    </header>
+    <p>La interfaz <code>Facturable</code> ya está en la carpeta. Completa los dos métodos de
+      <code>ServicioDigital</code>.</p>
+    <div class="filename">ejercicios/parte4/04-el-servicio-digital/ServicioDigital.java</div>
+    <pre><code>@Override
+public String getDetalle()        { /* TODO: "Hosting web [6 meses]" */ }
+
+@Override
+public double calcularImporte()   { /* TODO: costo mensual x meses */ }</code></pre>
+    <p>Un detalle: con un solo mes va en singular, <code>"Dominio [1 mes]"</code>.</p>
+    <div class="comando">./verificar.sh 4.4</div>
+  </section>
+
+  <section class="ejercicio" data-id="4.5">
+    <header>
+      <span class="ej-num">Ejercicio 4.5</span>
+      <h3>El producto físico</h3>
+      <span class="estrellas">★☆☆</span>
+    </header>
+    <p>Completa los dos métodos de <code>ProductoFisico</code>. El detalle es <code>"Router WiFi (0.8 kg)"</code> y
+      el importe es el precio más el envío: <code>25000.0</code> si pesa <strong>más</strong> de 1 kg,
+      <code>10000.0</code> si pesa 1 kg o menos.</p>
+    <div class="filename">ejercicios/parte4/05-el-producto-fisico/ProductoFisico.java</div>
+    <pre><code>@Override
+public String getDetalle()        { /* TODO */ }
+
+@Override
+public double calcularImporte()   { /* TODO */ }</code></pre>
+    <p>Hay una prueba con un producto de exactamente 1.0 kg. Lee bien "más de".</p>
+    <div class="comando">./verificar.sh 4.5</div>
+  </section>
+
+  <section class="ejercicio" data-id="4.6">
+    <header>
+      <span class="ej-num">Ejercicio 4.6</span>
+      <h3>El carrito polimórfico</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Ahora la clase que guarda la lista. Completa <code>Carrito</code>: todos sus métodos trabajan con
+      <code>Facturable</code>, sin mencionar nunca a <code>ServicioDigital</code> ni a
+      <code>ProductoFisico</code>.</p>
+    <div class="filename">ejercicios/parte4/06-el-carrito-polimorfico/Carrito.java</div>
+    <pre><code>private List&lt;Facturable&gt; items = new ArrayList&lt;&gt;();
+
+public void agregar(Facturable item)      { /* TODO: ignora null */ }
+public int cantidad()                     { /* TODO */ }
+public double total()                     { /* TODO */ }
+public List&lt;Facturable&gt; getItems()        { /* TODO: de solo lectura */ }
+public Facturable masCaro()               { /* TODO: null si está vacío */ }</code></pre>
+    <p><code>getItems</code> repite la lección de la sección 3.1, y <code>masCaro</code> la de la 3.3: ante un
+      empate gana el que se agregó primero.</p>
+    <div class="comando">./verificar.sh 4.6</div>
+  </section>
+
+  <!-- ================================================================== -->
+  <h2>4.4 Agregar un tipo sin tocar el carrito</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Compruebas el premio del polimorfismo: tipos nuevos sin editar el código que ya funciona.</li>
+      <li>Reconoces el antipatrón del <code>instanceof</code> en cadena.</li>
+      <li>Filtras una lista polimórfica usando solo el contrato.</li>
+    </ul>
+  </div>
+
+  <p>Imagina que el carrito del ejercicio 4.6 no usara una interfaz y preguntara por la clase de cada ítem:</p>
+
+  <pre><code>// Así NO
+for (Object item : items) {
+    if (item instanceof ServicioDigital) {
+        total += ((ServicioDigital) item).getCostoMensual() * ((ServicioDigital) item).getMeses();
+    } else if (item instanceof ProductoFisico) {
+        total += ((ProductoFisico) item).getPrecio() + ...;
+    }
+    // ¿y el tipo que llegue el mes que viene?
+}</code></pre>
+
+  <p>Cada tipo nuevo obliga a abrir el carrito y agregar otro <code>else if</code>, en <code>total</code>, en
+    <code>masCaro</code>, en la impresión… y un olvido en cualquiera de ellos es un error silencioso. Con la
+    interfaz, un tipo nuevo es una clase nueva y ya: <strong>el carrito no se toca</strong>. Esta idea tiene
+    nombre, <em>principio abierto/cerrado</em>: el código queda abierto a extenderse (clases nuevas) y cerrado a
+    modificarse (lo que ya funciona no se edita).</p>
+
+  <div class="box pro">
+    <h4>Cuándo sí es razonable <code>instanceof</code></h4>
+    <p>No está prohibido: a veces de verdad necesitas algo que solo tiene una clase (por ejemplo, listar solo los
+      servicios para avisar que se van a renovar). Pero si te ves escribiendo el mismo <code>if/else if</code> por
+      tipos en varios métodos, lo que falta es un método en la interfaz.</p>
+  </div>
+
+  <p>Filtrar también se hace a través del contrato. Este método sirve para cualquier <code>Facturable</code> que
+    exista hoy o que se invente mañana, porque lo único que pregunta es el importe:</p>
+
+  <pre><code>public List&lt;Facturable&gt; itemsDesde(double minimo) {
+    List&lt;Facturable&gt; resultado = new ArrayList&lt;&gt;();
+    for (Facturable item : items) {
+        if (item.calcularImporte() &gt;= minimo) {
+            resultado.add(item);
+        }
+    }
+    return resultado;
+}</code></pre>
+
+  <section class="ejercicio" data-id="4.7">
+    <header>
+      <span class="ej-num">Ejercicio 4.7</span>
+      <h3>Un tipo nuevo</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>La tienda empieza a vender cursos virtuales. Escribe la clase <code>CursoVirtual</code> completa: atributos,
+      constructor y los dos métodos.</p>
+    <div class="filename">ejercicios/parte4/07-un-tipo-nuevo/CursoVirtual.java</div>
+    <pre><code>public class CursoVirtual implements Facturable {
+    // TODO: atributos
+
+    public CursoVirtual(String nombre, double precioHora, int horas) { /* TODO */ }
+
+    public String getDetalle()        { /* TODO: "Curso: Java básico (40 h)" */ }
+    public double calcularImporte()   { /* TODO */ }
+}</code></pre>
+    <p>El importe es el precio por hora por las horas, con un <strong>10% de descuento</strong> si el curso tiene
+      40 horas o más. En la carpeta está el <code>Carrito</code> terminado del ejercicio anterior: las pruebas
+      meten tu curso en él. <strong>No lo edites</strong>; ese es el punto del ejercicio.</p>
+    <div class="comando">./verificar.sh 4.7</div>
+  </section>
+
+  <section class="ejercicio" data-id="4.8">
+    <header>
+      <span class="ej-num">Ejercicio 4.8</span>
+      <h3>Filtrar el carrito</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Agrégale dos métodos al <code>Carrito</code>:</p>
+    <div class="filename">ejercicios/parte4/08-filtrar-el-carrito/Carrito.java</div>
+    <pre><code>public List&lt;Facturable&gt; itemsDesde(double minimo)   { /* TODO */ }
+public int quitarMenoresA(double minimo)            { /* TODO */ }</code></pre>
+    <p><code>itemsDesde</code> devuelve una lista <strong>nueva</strong> con los ítems de importe mayor o igual al
+      mínimo, sin tocar el carrito. <code>quitarMenoresA</code> saca del carrito los de importe menor y devuelve
+      cuántos sacó. Pista para el segundo: <code>removeIf</code> no te dice cuántos borró, pero
+      <code>size()</code> antes y después sí.</p>
+    <div class="comando">./verificar.sh 4.8</div>
+  </section>
+
+  <!-- ================================================================== -->
+  <h2>4.5 Listas que nadie puede cambiar</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Creas listas inmutables con <code>List.of</code> y <code>List.copyOf</code>.</li>
+      <li>Distingues copia, vista de solo lectura y copia inmutable, y sabes cuál ve los cambios futuros.</li>
+      <li>Proteges una clase de lo que <em>entra</em>, no solo de lo que sale.</li>
+    </ul>
+  </div>
+
+  <p>Cuando los datos no van a cambiar nunca (los días de la semana, los medios de pago aceptados), Java 9 trae una
+    forma corta de crear la lista:</p>
+
+  <div class="filename">ListOf.java</div>
+  <pre><code>List&lt;String&gt; dias = List.of("lunes", "martes", "miércoles");
+System.out.println(dias + ", tamaño " + dias.size());
+dias.set(0, "domingo");</code></pre>
+  <p class="salida-label">salida</p>
+  <div class="salida">[lunes, martes, miércoles], tamaño 3
+Exception in thread "main" java.lang.UnsupportedOperationException
+	at java.base/java.util.ImmutableCollections.uoe(ImmutableCollections.java:145)
+	at java.base/java.util.ImmutableCollections$AbstractImmutableList.set(ImmutableCollections.java:267)
+	at ListOf.main(ListOf.java:7)</div>
+
+  <p>Una lista de <code>List.of</code> es <strong>inmutable</strong>: <code>add</code>, <code>remove</code>,
+    <code>set</code> y <code>clear</code> lanzan <code>UnsupportedOperationException</code>. Tampoco acepta
+    <code>null</code>: <code>List.of("Ana", null)</code> lanza <code>NullPointerException</code> en el acto.
+    Si necesitas una lista que empiece con esos datos y después cambie, envuélvela:
+    <code>new ArrayList&lt;&gt;(List.of(...))</code>.</p>
+
+  <p>En la sección 3.1 viste dos formas de entregar una lista sin que se la roben. Con <code>List.copyOf</code>
+    (Java 10) son tres, y se comportan distinto cuando el dueño cambia su lista <em>después</em>:</p>
+
+  <div class="filename">Inmutables.java</div>
+  <pre><code>List&lt;String&gt; original = new ArrayList&lt;&gt;(List.of("pan", "leche"));
+
+List&lt;String&gt; copia = new ArrayList&lt;&gt;(original);
+List&lt;String&gt; vista = Collections.unmodifiableList(original);
+List&lt;String&gt; congelada = List.copyOf(original);
+
+original.add("café");              // el dueño cambia su lista
+
+System.out.println("original:  " + original);
+System.out.println("copia:     " + copia);
+System.out.println("vista:     " + vista);
+System.out.println("congelada: " + congelada);
+
+try {
+    congelada.add("azúcar");
+} catch (UnsupportedOperationException e) {
+    System.out.println("congelada.add -&gt; UnsupportedOperationException");
+}</code></pre>
+  <p class="salida-label">salida</p>
+  <div class="salida">original:  [pan, leche, café]
+copia:     [pan, leche]
+vista:     [pan, leche, café]
+congelada: [pan, leche]
+congelada.add -&gt; UnsupportedOperationException</div>
+
+  <table class="resumen-tabla">
+    <tr><th>Forma</th><th>¿Se puede modificar?</th><th>¿Ve los cambios del original?</th></tr>
+    <tr><td><code>new ArrayList&lt;&gt;(x)</code></td><td>Sí (es otra lista)</td><td>No</td></tr>
+    <tr><td><code>Collections.unmodifiableList(x)</code></td><td>No</td><td>Sí: es una ventana al original</td></tr>
+    <tr><td><code>List.copyOf(x)</code></td><td>No</td><td>No: es una foto</td></tr>
+    <tr><td><code>List.of(a, b, c)</code></td><td>No</td><td>No hay original</td></tr>
+  </table>
+
+  <h3>La fuga de entrada</h3>
+
+  <p>En la 3.1 cerramos la fuga de <em>salida</em>: el getter que regala la lista interna. Hay otra, igual de
+    peligrosa, en la <em>entrada</em>:</p>
+
+  <pre><code>public Pedido(String codigo, List&lt;Articulo&gt; articulos) {
+    this.articulos = articulos;    // guarda la MISMA lista que le pasaron
+}</code></pre>
+
+  <p>Quien creó el pedido todavía tiene una referencia a esa lista. Si después le agrega un artículo, se lo agrega
+    al pedido, que ya estaba confirmado y cobrado. Es el alias de la sección 4.1 otra vez. La cura es la misma que
+    a la salida: guardar una copia (<code>new ArrayList&lt;&gt;(articulos)</code> o
+    <code>List.copyOf(articulos)</code>). A esto se le llama <strong>copia defensiva</strong>.</p>
+
+  <div class="box peligro">
+    <h4>La copia es de la lista, no de los objetos</h4>
+    <p>Todas estas formas copian las <em>referencias</em>, no los objetos: la copia y el original apuntan a los
+      mismos artículos. Si <code>Articulo</code> tuviera <em>setters</em>, alguien podría seguir cambiándolos. Por
+      eso los objetos que viajan en colecciones compartidas suelen ser inmutables: atributos privados y sin
+      <em>setters</em>.</p>
+  </div>
+
+  <div class="quiz" data-respuesta="b">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">Una clase guarda <code>this.items = Collections.unmodifiableList(items);</code> en su
+      constructor. ¿Está protegida?</p>
+    <div class="ops">
+      <button data-op="a">Sí: nadie puede modificar esa lista</button>
+      <button data-op="b">No del todo: la vista sigue mostrando lo que el llamador le haga a su lista original</button>
+      <button data-op="c">No, porque <code>unmodifiableList</code> no existe en Java 11</button>
+    </div>
+    <p class="fb">Nadie puede modificarla <em>a través de la vista</em>, pero el llamador conserva la lista
+      original y puede agregarle cosas, y la vista las mostrará. Para la entrada hace falta una copia:
+      <code>List.copyOf(items)</code> resuelve las dos fugas de un golpe.</p>
+  </div>
+
+  <section class="ejercicio" data-id="4.9">
+    <header>
+      <span class="ej-num">Ejercicio 4.9</span>
+      <h3>El pedido sellado</h3>
+      <span class="estrellas">★★★</span>
+    </header>
+    <p>Un pedido confirmado no cambia nunca. La plantilla de <code>Pedido</code> compila y funciona… con dos fugas.
+      Ciérralas, y agrega una validación.</p>
+    <div class="filename">ejercicios/parte4/09-el-pedido-sellado/Pedido.java</div>
+    <pre><code>private final String codigo;
+private final List&lt;Articulo&gt; articulos;
+
+public Pedido(String codigo, List&lt;Articulo&gt; articulos) { /* TODO */ }
+public String getCodigo()                                { ... }
+public List&lt;Articulo&gt; getArticulos()                     { /* TODO */ }
+public double total()                                    { /* TODO */ }</code></pre>
+    <ul>
+      <li>Si quien creó el pedido modifica después su lista, el pedido no se entera.</li>
+      <li>Quien reciba <code>getArticulos()</code> no puede meter ni sacar artículos.</li>
+      <li>Con una lista <code>null</code> o vacía, el constructor lanza <code>IllegalArgumentException</code>.</li>
+    </ul>
+    <p>Fíjate en el <code>final</code> de los atributos: protege las variables (nadie puede reasignar
+      <code>articulos</code>), pero no el contenido de la lista. Para eso es el resto del ejercicio.</p>
+    <div class="comando">./verificar.sh 4.9</div>
+  </section>
+
+  <!-- ================================================================== -->
+  <h2>4.6 Imprimir bonito: printf y String.format</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Controlas decimales, separador de miles y ancho de columna.</li>
+      <li>Sabes por qué el mismo programa imprime <code>45.000,00</code> en un computador y <code>45,000.00</code>
+        en otro.</li>
+    </ul>
+  </div>
+
+  <p>Concatenar con <code>+</code> imprime <code>1135000.0</code>. Una factura necesita
+    <code>1.135.000,00</code>, y columnas alineadas. Para eso está <code>printf</code>: un texto con
+    <em>especificadores</em> (lo que empieza con <code>%</code>) que se reemplazan, en orden, por los valores que
+    vienen después.</p>
+
+  <div class="filename">Formato.java</div>
+  <pre><code>String nombre = "Teclado USB";
+int unidades = 3;
+double precio = 45000.0;
+
+System.out.printf("%s x %d = %.2f%n", nombre, unidades, unidades * precio);
+System.out.printf("[%-15s] [%15s]%n", nombre, nombre);
+System.out.printf("$%,.2f%n", 1234567.891);
+System.out.printf("$%,12.2f|%n", precio);
+
+String linea = String.format("%-15s | $%,10.2f", nombre, precio);
+System.out.println(linea);</code></pre>
+  <p class="salida-label">salida (en un computador configurado en español de Colombia)</p>
+  <div class="salida">Teclado USB x 3 = 135000,00
+[Teclado USB    ] [    Teclado USB]
+$1.234.567,89
+$   45.000,00|
+Teclado USB     | $ 45.000,00</div>
+
+  <table class="resumen-tabla">
+    <tr><th>Especificador</th><th>Qué hace</th><th>Ejemplo</th></tr>
+    <tr><td><code>%s</code></td><td>Texto (o cualquier objeto, con su <code>toString</code>)</td><td><code>Teclado USB</code></td></tr>
+    <tr><td><code>%d</code></td><td>Entero</td><td><code>3</code></td></tr>
+    <tr><td><code>%.2f</code></td><td>Decimal con 2 cifras, redondeado</td><td><code>135000,00</code></td></tr>
+    <tr><td><code>%,.2f</code></td><td>Igual, con separador de miles</td><td><code>1.234.567,89</code></td></tr>
+    <tr><td><code>%15s</code></td><td>Ocupa 15 caracteres, alineado a la derecha</td><td><code>&nbsp;&nbsp;&nbsp;&nbsp;Teclado USB</code></td></tr>
+    <tr><td><code>%-15s</code></td><td>Ocupa 15 caracteres, alineado a la izquierda</td><td><code>Teclado USB&nbsp;&nbsp;&nbsp;&nbsp;</code></td></tr>
+    <tr><td><code>%,12.2f</code></td><td>Número de 12 caracteres, a la derecha: ideal para columnas de plata</td><td><code>&nbsp;&nbsp;&nbsp;45.000,00</code></td></tr>
+    <tr><td><code>%n</code></td><td>Salto de línea (<code>printf</code> no lo pone solo)</td><td></td></tr>
+  </table>
+
+  <p><code>printf</code> imprime; <code>String.format</code>, con exactamente la misma sintaxis,
+    <strong>devuelve el texto</strong>. Casi siempre conviene el segundo dentro de las clases: un método que
+    devuelve un <code>String</code> se puede probar, guardar en un archivo o mostrar en una ventana, y uno que
+    imprime solo sirve para la consola.</p>
+
+  <div class="box nota">
+    <h4>Punto o coma: depende del computador</h4>
+    <p>El separador de miles y el decimal los decide la configuración regional (<em>Locale</em>) de la máquina. El
+      mismo programa en un computador en inglés imprime <code>$1,234,567.89</code>. Si necesitas un formato fijo,
+      pásalo como primer argumento: <code>String.format(Locale.US, "%,.2f", x)</code>. Las pruebas del ejercicio
+      4.10 fijan el formato colombiano por su cuenta, así que tú no tienes que pasar ningún <code>Locale</code>.</p>
+  </div>
+
+  <div class="quiz" data-respuesta="a">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">¿Qué produce <code>String.format("[%-6s]", "sol")</code>?</p>
+    <div class="ops">
+      <button data-op="a"><code>[sol&nbsp;&nbsp;&nbsp;]</code></button>
+      <button data-op="b"><code>[&nbsp;&nbsp;&nbsp;sol]</code></button>
+      <button data-op="c"><code>[sol-6]</code></button>
+    </div>
+    <p class="fb">El <code>6</code> es el ancho total y el <code>-</code> alinea a la izquierda, así que se rellena
+      con 3 espacios a la derecha. Sin el <code>-</code>, los espacios irían a la izquierda.</p>
+  </div>
+
+  <section class="ejercicio" data-id="4.10">
+    <header>
+      <span class="ej-num">Ejercicio 4.10</span>
+      <h3>La liquidación</h3>
+      <span class="estrellas">★★★</span>
+    </header>
+    <p>Cierra el carrito imprimiendo la factura. Completa los dos métodos de <code>Factura</code>:</p>
+    <div class="filename">ejercicios/parte4/10-la-liquidacion/Factura.java</div>
+    <pre><code>public static String linea(Facturable item)                 { /* TODO */ }
+public static String liquidacion(List&lt;Facturable&gt; items)    { /* TODO */ }</code></pre>
+    <p><code>linea</code> usa el formato <code>"%-30s | $%,14.2f"</code> con el detalle y el importe.
+      <code>liquidacion</code> junta una línea por ítem, una fila de 48 guiones (<code>"-".repeat(48)</code>) y la
+      línea del total, separadas con <code>"\n"</code> y sin salto al final:</p>
+    <div class="salida">Hosting web [6 meses]          | $    270.000,00
+Router WiFi (0.8 kg)           | $    190.000,00
+------------------------------------------------
+TOTAL                          | $    460.000,00</div>
+    <p>Reutiliza tu propio <code>linea</code> dentro de <code>liquidacion</code>. Y fíjate que la línea del total
+      tiene el mismo formato que las demás: solo cambia el texto de la izquierda.</p>
+    <div class="comando">./verificar.sh 4.10</div>
+  </section>
+
+  <!-- ================================================================== -->
+  <h2>4.7 Resumen de la Parte 4</h2>
+
+  <table class="resumen-tabla">
+    <tr><th>Si quieres…</th><th>Usa</th></tr>
+    <tr><td>Cambiar un objeto que está en una lista</td><td>Búscalo y llama su <em>setter</em> (sin <code>set</code>)</td></tr>
+    <tr><td>Cambiar un número o texto de una lista</td><td><code>lista.set(i, nuevo)</code></td></tr>
+    <tr><td>Borrar y hacer algo con cada eliminado</td><td><code>Iterator</code> + <code>it.remove()</code></td></tr>
+    <tr><td>Guardar objetos de clases distintas juntos</td><td>Una interfaz y <code>List&lt;LaInterfaz&gt;</code></td></tr>
+    <tr><td>Una lista fija desde el principio</td><td><code>List.of(...)</code></td></tr>
+    <tr><td>Guardar o entregar una lista sin fugas</td><td><code>List.copyOf(x)</code></td></tr>
+    <tr><td>Números con miles y decimales</td><td><code>String.format("%,.2f", x)</code></td></tr>
+  </table>
+
+  <div class="box info">
+    <h4>Cosas para recordar</h4>
+    <ul>
+      <li>Variables locales y referencias en el Stack; objetos en el Heap. <code>get</code> da una referencia, no
+        una copia.</li>
+      <li><code>Integer</code>, <code>Double</code> y <code>String</code> son inmutables: se reemplazan, no se
+        modifican.</li>
+      <li>Un for-each es un <code>Iterator</code> escondido. Para borrar mientras recorres, borra a través de
+        él.</li>
+      <li>La variable decide qué métodos puedes llamar; el objeto decide qué código corre.</li>
+      <li>Un tipo nuevo debería ser una clase nueva, no un <code>else if</code> nuevo en todas partes.</li>
+      <li>Hay fugas de salida (getters) y de entrada (constructores). Una copia defensiva cierra las dos.</li>
+      <li><code>printf</code> imprime, <code>String.format</code> devuelve. Dentro de una clase, casi siempre el
+        segundo.</li>
+    </ul>
+  </div>
+
+  <div class="box pro">
+    <h4>¿Y cuándo gana el arreglo?</h4>
+    <p>Una <code>List&lt;Double&gt;</code> guarda referencias a objetos <code>Double</code>, cada uno con su
+      cabecera de objeto; un <code>double[]</code> guarda los números seguidos, 8 bytes cada uno. La diferencia es
+      de unas 3 a 4 veces más memoria para la lista, más el trabajo extra del recolector de basura, más alguna
+      ampliación en un momento que tú no eliges. En un programa de gestión eso no se nota. En software embebido,
+      control industrial o procesamiento de señales en tiempo real (miles de muestras por segundo, memoria
+      escasa, tiempos de respuesta garantizados) sí, y ahí el arreglo de primitivos de tamaño fijo sigue siendo
+      la herramienta correcta.</p>
+  </div>
+
+  <div class="box nota">
+    <h4>Dos herramientas que ayudan</h4>
+    <p><strong>El depurador</strong> de tu editor (VS Code, IntelliJ, Eclipse): pon un punto de interrupción,
+      despliega una variable <code>ArrayList</code> y verás por dentro su <code>size</code> y su
+      <code>elementData</code>, con las casillas de sobra en <code>null</code>. Es la sección 2.6 en vivo.
+      <strong>SonarLint</strong> (o SonarQube for IDE): un complemento que revisa tu código mientras escribes y te
+      avisa, entre muchas otras cosas, cuando un getter entrega una colección interna sin copiarla.</p>
+  </div>
+
+  <p>Con esto terminaste el curso. El paso natural que sigue es <code>HashMap</code> (buscar por clave en vez de
+    recorrer), <code>Comparable</code> y <code>Collections.sort</code> (ordenar listas de tus objetos), y los
+    <em>streams</em> de Java 8, que convierten los recorridos de filtrar y sumar que escribiste aquí en una sola
+    línea.</p>
+
+  <div class="pager">
+    <a class="prev" href="parte3.html">
+      <span class="dir">Anterior</span><br>
+      <span class="ttl">Parte 3 · Diseño con colecciones</span>
+    </a>
+    <a class="next" href="index.html">
+      <span class="dir">Volver al</span><br>
+      <span class="ttl">Inicio del curso</span>
+    </a>
+  </div>
+
+</div></main>
+<script src="nav.js"></script>
+</body>
+</html>

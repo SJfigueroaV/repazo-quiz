@@ -13,12 +13,13 @@ Abre `index.html` en el navegador para empezar.
 | 1 | Arreglos de objetos | 10 |
 | 2 | Listas dinámicas (`ArrayList`) | 10 |
 | 3 | Diseño con colecciones + sala de urgencias | 10 |
+| 4 | Colecciones en el mundo real: Stack/Heap, `Iterator`, polimorfismo con interfaces, `List.of`/`List.copyOf`, `String.format` | 10 |
 
-19 secciones, 30 ejercicios y 234 pruebas automáticas.
+26 secciones, 40 ejercicios y 325 pruebas automáticas.
 
 ## Requisitos
 
-Un JDK (Java 8 o superior). Nada más: el corrector es Java puro, sin Maven ni librerías externas.
+Un JDK (Java 11 o superior). Nada más: el corrector es Java puro, sin Maven ni librerías externas.
 
 ```bash
 java -version && javac -version

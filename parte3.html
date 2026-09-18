@@ -273,6 +273,18 @@ public static double valorTotal(List&lt;Producto&gt; productos)  { /* TODO */ }<
     es: si la cantidad de elementos la decide el usuario en tiempo de ejecución (un carrito, una sala de espera,
     una lista de transacciones), <strong>no uses un arreglo fijo</strong>.</p>
 
+  <div class="box nota">
+    <h4>En el idioma de la calidad de software</h4>
+    <p>La norma ISO/IEC 25010, que define qué hace "bueno" a un producto de software, tiene un nombre para lo que
+      le faltó a ese carrito: <strong>adaptabilidad</strong>, la capacidad de adaptarse a condiciones de uso
+      distintas o que cambian (en la revisión de 2023 aparece junto a la <strong>escalabilidad</strong>, dentro de
+      la característica de flexibilidad). Un límite de 10 escrito en el código es lo contrario: el sistema
+      funciona solo mientras el mundo se comporte como se supuso. Y la capacidad inicial de la sección 2.6 no lo
+      arregla: con <code>new ArrayList&lt;&gt;(16)</code> y un promedio de 12 productos te ahorras la única
+      ampliación que haría <code>new ArrayList&lt;&gt;()</code> (de 10 a 15) a cambio de 4 casillas sin usar. Es
+      un ajuste fino; lo que salva el sistema es que la lista puede seguir creciendo.</p>
+  </div>
+
   <p>Migrar no es reescribir el programa: es cambiar el atributo y ajustar los métodos que lo tocaban. La firma
     pública se conserva, así que el resto del código sigue igual. Este es el antes y después del método más feo,
     eliminar por ISBN en una biblioteca:</p>
@@ -490,19 +502,18 @@ public double promedioTriage()       { /* TODO */ }</code></pre>
     </ul>
   </div>
 
-  <p>Y con eso terminaste el curso. Si quieres seguir, el paso natural es <code>HashMap</code> (buscar por clave
-    en vez de recorrer), <code>Comparable</code> y <code>Collections.sort</code> (ordenar listas de tus objetos),
-    y los <em>streams</em> de Java 8, que convierten los recorridos de filtrar y sumar que escribiste aquí en una
-    sola línea.</p>
+  <p>En la Parte 4 queda lo que aparece en cuanto el código se vuelve profesional: qué pasa en la memoria cuando
+    dos variables apuntan al mismo objeto, el iterador que hay debajo del for-each, listas que mezclan objetos de
+    clases distintas gracias a una interfaz, listas inmutables y facturas bien formateadas.</p>
 
   <div class="pager">
     <a class="prev" href="parte2.html">
       <span class="dir">Anterior</span><br>
       <span class="ttl">Parte 2 · Listas dinámicas</span>
     </a>
-    <a class="next" href="index.html">
-      <span class="dir">Volver al</span><br>
-      <span class="ttl">Inicio del curso</span>
+    <a class="next" href="parte4.html">
+      <span class="dir">Siguiente</span><br>
+      <span class="ttl">Parte 4 · Colecciones en el mundo real</span>
     </a>
   </div>
 

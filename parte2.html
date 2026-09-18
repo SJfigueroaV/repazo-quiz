@@ -256,6 +256,26 @@ remove(Integer.valueOf(1)) borra el VALOR 1: [2, 3]</div>
       se cae antes.</p>
   </div>
 
+  <div class="quiz" data-respuesta="b">
+    <h4>Pregunta rápida: sigue la traza</h4>
+    <p class="pregunta">¿Qué imprime este código?</p>
+    <pre><code>List&lt;String&gt; colores = new ArrayList&lt;&gt;();
+colores.add("rojo");
+colores.add("verde");
+colores.add(1, "azul");
+colores.remove(0);
+System.out.println(colores.get(0) + " " + colores.size());</code></pre>
+    <div class="ops">
+      <button data-op="a"><code>rojo 3</code></button>
+      <button data-op="b"><code>azul 2</code></button>
+      <button data-op="c"><code>verde 2</code></button>
+    </div>
+    <p class="fb">Paso a paso: <code>[rojo, verde]</code> → <code>add(1, "azul")</code> inserta en la posición 1 y
+      corre el verde: <code>[rojo, azul, verde]</code> → <code>remove(0)</code> quita el rojo y compacta:
+      <code>[azul, verde]</code>. En la posición 0 queda <code>azul</code> y el tamaño es 2. Con este tipo de
+      preguntas, escribe la lista completa después de cada línea: adivinar de memoria es donde uno se equivoca.</p>
+  </div>
+
   <section class="ejercicio" data-id="2.3">
     <header>
       <span class="ej-num">Ejercicio 2.3</span>
