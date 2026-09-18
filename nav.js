@@ -8,7 +8,7 @@ const PARTS = [
 ];
 
 // Ejercicios publicados hasta ahora (se actualiza al publicar cada parte).
-const TOTAL_EJERCICIOS = 10;
+const TOTAL_EJERCICIOS = 20;
 
 const current = location.pathname.split("/").pop() || "index.html";
 

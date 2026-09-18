@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parte 2 · Listas dinámicas</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main><div class="content">
+
+  <p class="part-eyebrow">Parte 2</p>
+  <h1>Listas dinámicas (ArrayList)</h1>
+  <p class="lead">En la Parte 1 escribiste a mano una agenda que se ampliaba sola. Java ya trae esa idea
+    resuelta, probada y optimizada: se llama <code>ArrayList</code>. Esta parte es aprender a usarla bien,
+    incluidas las dos o tres trampas donde todo el mundo se cae la primera vez.</p>
+
+  <div class="objetivos">
+    <h4>Al terminar esta parte</h4>
+    <ul>
+      <li>Creas listas, agregas, consultas y eliminas elementos con sus métodos.</li>
+      <li>Entiendes para qué sirven los genéricos <code>&lt;E&gt;</code> y por qué no aceptan <code>int</code>.</li>
+      <li>Recorres listas con <code>for</code> y con for-each, y sabes cuál usar.</li>
+      <li>Sabes por qué eliminar dentro de un for-each lanza <code>ConcurrentModificationException</code>, y cómo evitarlo.</li>
+      <li>Trabajas con listas de tus propios objetos: buscar, filtrar y calcular.</li>
+      <li>Puedes explicar qué hace un <code>ArrayList</code> por dentro cuando se llena.</li>
+    </ul>
+  </div>
+
+  <h2>2.1 La lista que crece</h2>
+
+  <p>Un <code>ArrayList</code> es una colección que <strong>no tiene tamaño fijo</strong>: crece cuando agregas y se
+    compacta cuando eliminas. Vive en el paquete <code>java.util</code>, así que toca importarlo.</p>
+
+  <div class="filename">Compras.java</div>
+  <pre><code>import java.util.ArrayList;
+
+ArrayList&lt;String&gt; compras = new ArrayList&lt;&gt;();
+System.out.println("Al crearla: " + compras.size() + " elementos");
+
+compras.add("pan");
+compras.add("leche");
+compras.add("café");
+
+System.out.println("Ahora: " + compras.size() + " elementos");
+System.out.println("El primero: " + compras.get(0));
+System.out.println("La lista entera: " + compras);
+
+compras.remove("leche");
+System.out.println("Sin la leche: " + compras);
+System.out.println("¿Queda café? " + compras.contains("café"));</code></pre>
+
+  <p class="salida-label">salida</p>
+  <div class="salida">Al crearla: 0 elementos
+Ahora: 3 elementos
+El primero: pan
+La lista entera: [pan, leche, café]
+Sin la leche: [pan, café]
+¿Queda café? true</div>
+
+  <p>Lo primero que salta a la vista: <strong>no hay corchetes por ninguna parte</strong>. Donde el arreglo usaba
+    sintaxis del lenguaje (<code>arr[0] = x</code>), la lista usa métodos (<code>lista.add(x)</code>). Y
+    <code>println</code> de una lista imprime su contenido, que es mucho más cómodo que un arreglo (un arreglo
+    imprime algo como <code>[Ljava.lang.String;@2f92e0f4</code>).</p>
+
+  <table>
+    <tr><th>Arreglo (<code>String[]</code>)</th><th>Lista (<code>ArrayList&lt;String&gt;</code>)</th></tr>
+    <tr><td>Tamaño fijo, decidido al crearlo</td><td>Tamaño variable, crece sola</td></tr>
+    <tr><td><code>arr[0] = "pan";</code></td><td><code>lista.add("pan");</code></td></tr>
+    <tr><td><code>arr[0]</code></td><td><code>lista.get(0)</code></td></tr>
+    <tr><td><code>arr.length</code> (propiedad)</td><td><code>lista.size()</code> (método)</td></tr>
+    <tr><td>Casillas vacías con <code>null</code></td><td>Sin casillas vacías: solo lo que agregaste</td></tr>
+    <tr><td>Guarda primitivos y objetos</td><td>Solo objetos (o sus envolventes)</td></tr>
+  </table>
+
+  <p>Recorrer una lista se parece a recorrer un arreglo. Con índice, cuando necesitas saber la posición:</p>
+
+  <pre><code>for (int i = 0; i &lt; compras.size(); i++) {
+    System.out.println(i + ": " + compras.get(i));
+}</code></pre>
+
+  <p>O con <strong>for-each</strong>, cuando solo te importan los elementos. Es más corto y no puedes equivocarte
+    con los índices, así que es el que se usa por defecto:</p>
+
+  <pre><code>for (String producto : compras) {
+    System.out.println(producto);
+}</code></pre>
+
+  <div class="box nota">
+    <h4>Tres formas de preguntar el tamaño</h4>
+    <p><code>arreglo.length</code>, <code>texto.length()</code>, <code>lista.size()</code>. Sí, es incómodo, y sí,
+      lo vas a confundir varias veces. El compilador te avisa.</p>
+  </div>
+
+  <div class="quiz" data-respuesta="c">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">Creas una lista vacía y agregas 3 elementos. ¿Qué devuelve <code>lista.size()</code> y cuál
+      es el último índice válido para <code>get</code>?</p>
+    <div class="ops">
+      <button data-op="a">3 y 3</button>
+      <button data-op="b">4 y 3</button>
+      <button data-op="c">3 y 2</button>
+    </div>
+    <p class="fb">Igual que en los arreglos: los índices empiezan en 0, así que con 3 elementos van de
+      <code>0</code> a <code>2</code>. <code>lista.get(3)</code> lanza <code>IndexOutOfBoundsException</code>.</p>
+  </div>
+
+  <section class="ejercicio" data-id="2.1">
+    <header>
+      <span class="ej-num">Ejercicio 2.1</span>
+      <h3>Del arreglo a la lista</h3>
+      <span class="estrellas">★☆☆</span>
+    </header>
+    <p>Completa el método <code>desdeArreglo</code>, que recibe un arreglo de palabras y devuelve una lista con esas
+      mismas palabras, en el mismo orden.</p>
+    <div class="filename">ejercicios/parte2/01-del-arreglo-a-la-lista/Listas.java</div>
+    <pre><code>public static ArrayList&lt;String&gt; desdeArreglo(String[] palabras) {
+    // TODO
+}</code></pre>
+    <p>Con un arreglo vacío debe devolver una lista vacía, no <code>null</code>: una lista sin elementos es un valor
+      perfectamente normal, y devolver <code>null</code> obliga a quien te llame a revisarlo.</p>
+    <div class="comando">./verificar.sh 2.1</div>
+  </section>
+
+  <h2>2.2 Genéricos: qué cabe en la lista</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Entiendes qué significan los diamantes <code>&lt;&gt;</code> y qué te dan a cambio.</li>
+      <li>Sabes qué escribir cuando quieres una lista de números.</li>
+    </ul>
+  </div>
+
+  <p>Al declarar la lista le dices entre diamantes <strong>qué tipo de objeto puede entrar</strong>. Eso son los
+    genéricos. Antes de Java 5 las colecciones guardaban <code>Object</code>, o sea cualquier cosa, y al sacar un
+    elemento tocaba convertirlo a mano con un <em>casting</em> que podía explotar en tiempo de ejecución. Hoy el
+    compilador te protege:</p>
+
+  <pre><code>ArrayList&lt;Producto&gt; catalogo = new ArrayList&lt;&gt;();
+
+catalogo.add(new Producto("P01", "Teclado", 150000.0));   // bien
+catalogo.add("un texto cualquiera");                       // ERROR DE COMPILACIÓN</code></pre>
+
+  <p>Ese error es una buena noticia: falla al compilar, en tu máquina, y no a media noche en producción. Fíjate
+    también en el <code>new ArrayList&lt;&gt;()</code> del lado derecho: desde Java 7 no hay que repetir el tipo,
+    el compilador lo deduce. Ese <code>&lt;&gt;</code> vacío se llama <em>operador diamante</em>.</p>
+
+  <div class="box peligro">
+    <h4>Los genéricos no aceptan primitivos</h4>
+    <p><code>ArrayList&lt;int&gt;</code> no compila. Para guardar números hay que usar las <strong>clases
+      envolventes</strong>: <code>ArrayList&lt;Integer&gt;</code>, <code>ArrayList&lt;Double&gt;</code>,
+      <code>ArrayList&lt;Character&gt;</code>, <code>ArrayList&lt;Boolean&gt;</code>.</p>
+  </div>
+
+  <p>En la práctica casi no se nota, porque Java convierte solo entre <code>int</code> e <code>Integer</code> (eso
+    se llama <em>autoboxing</em>):</p>
+
+  <pre><code>ArrayList&lt;Integer&gt; numeros = new ArrayList&lt;&gt;();
+
+numeros.add(5);                 // guardas un int, Java lo envuelve en un Integer
+int primero = numeros.get(0);   // sacas un Integer, Java lo desenvuelve a int
+
+for (int numero : numeros) {    // incluso aquí puedes usar int
+    System.out.println(numero);
+}</code></pre>
+
+  <div class="quiz" data-respuesta="b">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">¿Cuál de estas declaraciones compila?</p>
+    <div class="ops">
+      <button data-op="a"><code>ArrayList&lt;double&gt; precios = new ArrayList&lt;&gt;();</code></button>
+      <button data-op="b"><code>ArrayList&lt;Double&gt; precios = new ArrayList&lt;&gt;();</code></button>
+      <button data-op="c"><code>ArrayList&lt;double[]&gt; precios = new ArrayList&lt;double&gt;();</code></button>
+    </div>
+    <p class="fb">Solo la segunda. <code>double</code> es un primitivo y no cabe entre diamantes; su clase
+      envolvente es <code>Double</code>, con mayúscula. La tercera además tiene los tipos descuadrados entre el lado
+      izquierdo y el derecho.</p>
+  </div>
+
+  <section class="ejercicio" data-id="2.2">
+    <header>
+      <span class="ej-num">Ejercicio 2.2</span>
+      <h3>Suma de la lista</h3>
+      <span class="estrellas">★☆☆</span>
+    </header>
+    <p>Completa el método <code>sumar</code>, que devuelve la suma de todos los números de la lista. Con una lista
+      vacía devuelve <code>0</code>.</p>
+    <div class="filename">ejercicios/parte2/02-suma-de-la-lista/Listas.java</div>
+    <pre><code>public static int sumar(ArrayList&lt;Integer&gt; numeros) {
+    // TODO
+}</code></pre>
+    <p>Compáralo con el ejercicio 1.1: es el mismo problema, pero ya no necesitas <code>length</code> ni índices.</p>
+    <div class="comando">./verificar.sh 2.2</div>
+  </section>
+
+  <h2>2.3 Las operaciones de una lista</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Conoces los métodos que vas a usar el 95% del tiempo.</li>
+      <li>Distingues eliminar por posición de eliminar por contenido.</li>
+    </ul>
+  </div>
+
+  <table class="resumen-tabla">
+    <tr><th>Qué quieres hacer</th><th>Método</th><th>Detalle</th></tr>
+    <tr><td>Agregar al final</td><td><code>lista.add(elemento)</code></td><td>El caso normal.</td></tr>
+    <tr><td>Insertar en una posición</td><td><code>lista.add(indice, elemento)</code></td><td>Corre los demás a la derecha.</td></tr>
+    <tr><td>Consultar</td><td><code>lista.get(indice)</code></td><td>Empieza en 0.</td></tr>
+    <tr><td>Reemplazar</td><td><code>lista.set(indice, elemento)</code></td><td>Pisa lo que hubiera ahí.</td></tr>
+    <tr><td>Eliminar por posición</td><td><code>lista.remove(indice)</code></td><td>Compacta la lista sola.</td></tr>
+    <tr><td>Eliminar por contenido</td><td><code>lista.remove(objeto)</code></td><td>Quita la primera aparición.</td></tr>
+    <tr><td>Cuántos hay</td><td><code>lista.size()</code></td><td></td></tr>
+    <tr><td>¿Está vacía?</td><td><code>lista.isEmpty()</code></td><td>Más legible que <code>size() == 0</code>.</td></tr>
+    <tr><td>¿Contiene esto?</td><td><code>lista.contains(objeto)</code></td><td>Devuelve <code>true</code> o <code>false</code>.</td></tr>
+    <tr><td>¿En qué posición está?</td><td><code>lista.indexOf(objeto)</code></td><td><code>-1</code> si no está.</td></tr>
+    <tr><td>Vaciar</td><td><code>lista.clear()</code></td><td>La deja en tamaño 0.</td></tr>
+  </table>
+
+  <p>Hay un detalle que muerde a todo el mundo una vez. Fíjate en los dos <code>remove</code>: uno recibe un
+    <code>int</code> (posición) y el otro un objeto (contenido). Con una lista de <code>Integer</code>, las dos
+    versiones se parecen peligrosamente:</p>
+
+  <div class="filename">Trampa.java</div>
+  <pre><code>ArrayList&lt;Integer&gt; numeros = new ArrayList&lt;&gt;();
+numeros.add(1);
+numeros.add(2);
+numeros.add(3);
+
+numeros.remove(1);                    // ¿borra el número 1... o la posición 1?
+numeros.remove(Integer.valueOf(1));   // esta sí borra el número 1</code></pre>
+
+  <p class="salida-label">salida (cada remove sobre una copia de la lista original)</p>
+  <div class="salida">Lista: [1, 2, 3]
+remove(1) borra la POSICIÓN 1: [1, 3]
+remove(Integer.valueOf(1)) borra el VALOR 1: [2, 3]</div>
+
+  <p>Java elige el método por el <strong>tipo</strong> del argumento: <code>remove(1)</code> ve un <code>int</code>
+    y borra la posición. Para borrar por valor hay que pasarle un objeto <code>Integer</code>, con
+    <code>Integer.valueOf(1)</code>. Con listas de cualquier otro tipo (<code>String</code>, <code>Producto</code>…)
+    el problema no existe, porque no hay ambigüedad posible.</p>
+
+  <div class="quiz" data-respuesta="a">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">En una lista <code>[10, 20, 30]</code> de <code>Integer</code>, ¿qué hace
+      <code>lista.remove(5)</code>?</p>
+    <div class="ops">
+      <button data-op="a">Lanza <code>IndexOutOfBoundsException</code></button>
+      <button data-op="b">No hace nada, porque el 5 no está en la lista</button>
+      <button data-op="c">Borra el último elemento</button>
+    </div>
+    <p class="fb">Como <code>5</code> es un <code>int</code>, Java entiende "borra la posición 5", que no existe en
+      una lista de 3 elementos. Si lo que querías era borrar el valor 5, la lista quedaría igual… pero el programa
+      se cae antes.</p>
+  </div>
+
+  <section class="ejercicio" data-id="2.3">
+    <header>
+      <span class="ej-num">Ejercicio 2.3</span>
+      <h3>Palabras largas</h3>
+      <span class="estrellas">★☆☆</span>
+    </header>
+    <p>Completa el método <code>largas</code>, que devuelve una lista <strong>nueva</strong> con las palabras que
+      tengan al menos <code>minimo</code> letras, en el mismo orden.</p>
+    <div class="filename">ejercicios/parte2/03-palabras-largas/Listas.java</div>
+    <pre><code>public static ArrayList&lt;String&gt; largas(ArrayList&lt;String&gt; palabras, int minimo) {
+    // TODO
+}</code></pre>
+    <p>Este es el patrón de <strong>filtrar</strong>, y lo vas a usar toda la vida: recorres una lista y vas
+      agregando a otra los que cumplen. La lista original no se toca (hay una prueba que lo revisa).</p>
+    <div class="comando">./verificar.sh 2.3</div>
+  </section>
+
+  <section class="ejercicio" data-id="2.4">
+    <header>
+      <span class="ej-num">Ejercicio 2.4</span>
+      <h3>El índice traicionero</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Completa el método <code>quitarElNumero</code>, que quita de la lista la primera aparición del
+      <strong>número</strong> indicado (no de la posición). Si el número no está, la lista queda igual.</p>
+    <div class="filename">ejercicios/parte2/04-el-indice-traicionero/Listas.java</div>
+    <pre><code>public static void quitarElNumero(ArrayList&lt;Integer&gt; numeros, int numero) {
+    // TODO
+}</code></pre>
+    <p>Si escribes <code>numeros.remove(numero)</code> vas a borrar posiciones y las pruebas te lo van a decir con
+      un <code>IndexOutOfBoundsException</code>. Esa es justo la trampa que estamos practicando.</p>
+    <div class="comando">./verificar.sh 2.4</div>
+  </section>
+
+  <h2>2.4 Modificar la lista mientras la recorres</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Provocas un <code>ConcurrentModificationException</code> y entiendes por qué ocurre.</li>
+      <li>Aprendes las dos formas correctas de eliminar mientras recorres.</li>
+    </ul>
+  </div>
+
+  <p>Este código parece razonable y no lo es:</p>
+
+  <div class="filename">Borrado.java</div>
+  <pre><code>ArrayList&lt;String&gt; palabras = new ArrayList&lt;&gt;();
+palabras.add("sol");
+palabras.add("luna");
+palabras.add("mar");
+
+for (String palabra : palabras) {
+    if (palabra.equals("sol")) {
+        palabras.remove(palabra);     // ¡FALLO!
+    }
+}</code></pre>
+
+  <p class="salida-label">salida</p>
+  <div class="salida">Exception in thread "main" java.util.ConcurrentModificationException
+	at java.base/java.util.ArrayList$Itr.checkForComodification(ArrayList.java:1104)
+	at java.base/java.util.ArrayList$Itr.next(ArrayList.java:1058)
+	at Borrado.main(Borrado.java:6)</div>
+
+  <p>Lo que pasa por dentro: un for-each no recorre la lista directamente, sino que le pide un
+    <strong>iterador</strong>. La lista lleva un contador de cuántas veces la han modificado, y el iterador guarda
+    una copia de ese número cuando nace. Al llamar <code>palabras.remove(...)</code> modificas la lista por fuera
+    del iterador, los dos números dejan de coincidir, y en la siguiente vuelta el iterador se da cuenta y lanza la
+    excepción.</p>
+
+  <p>Podría parecer exagerado, pero es una protección: si el iterador siguiera adelante, los elementos ya se
+    habrían corrido de posición y se saltaría alguno en silencio. Java prefiere fallar de una vez y que lo
+    arregles. Esto se llama comportamiento <em>fail-fast</em>.</p>
+
+  <div class="box peligro">
+    <h4>El caso que no lanza excepción (peor todavía)</h4>
+    <p>Si el elemento que borras es el <strong>penúltimo</strong>, el bucle termina sin error… y sin revisar el
+      último. No se cae, simplemente hace mal el trabajo. Por eso no basta con "probar si no truena": hay que
+      eliminar de la forma correcta.</p>
+  </div>
+
+  <p>Las dos formas correctas. La primera, un <code>for</code> hacia atrás:</p>
+
+  <pre><code>for (int i = palabras.size() - 1; i &gt;= 0; i--) {
+    if (palabras.get(i).equals("sol")) {
+        palabras.remove(i);
+    }
+}</code></pre>
+
+  <p>Funciona porque no hay iterador, y porque al borrar la posición <code>i</code> solo se corren los elementos que
+    ya revisaste. Si recorrieras hacia adelante, el siguiente elemento ocuparía la posición <code>i</code> y el
+    <code>i++</code> lo saltaría.</p>
+
+  <p>La segunda, <code>removeIf</code>, que dice directamente qué borrar:</p>
+
+  <pre><code>palabras.removeIf(palabra -&gt; palabra.equals("sol"));</code></pre>
+
+  <p>La lista se encarga de recorrer y eliminar de forma segura, en una sola pasada. Es la forma moderna y la más
+    corta; el <code>for</code> hacia atrás sirve para entender qué está pasando.</p>
+
+  <section class="ejercicio" data-id="2.5">
+    <header>
+      <span class="ej-num">Ejercicio 2.5</span>
+      <h3>Los despedidos</h3>
+      <span class="estrellas">★★★</span>
+    </header>
+    <p>Completa el método <code>eliminarDespedidos</code>, que quita de la plantilla a todos los empleados
+      despedidos. Puedes resolverlo con el <code>for</code> hacia atrás o con <code>removeIf</code>.</p>
+    <div class="filename">ejercicios/parte2/05-los-despedidos/Plantilla.java</div>
+    <pre><code>public static void eliminarDespedidos(ArrayList&lt;Empleado&gt; plantilla) {
+    // TODO
+}</code></pre>
+    <p>Hay una prueba con el despedido en la penúltima posición y otra con dos despedidos seguidos: son exactamente
+      los casos donde las soluciones a medias fallan. Si intentas el for-each, vas a ver el
+      <code>ConcurrentModificationException</code> reportado por el corrector.</p>
+    <div class="comando">./verificar.sh 2.5</div>
+  </section>
+
+  <h2>2.5 Listas de tus propios objetos</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Buscas, filtras y calculas sobre listas de objetos que tú escribiste.</li>
+      <li>Entiendes por qué <code>contains</code> a veces dice que no, aunque el objeto "esté".</li>
+    </ul>
+  </div>
+
+  <p>Aquí es donde la lista se pone útil de verdad. Los patrones son los mismos de la Parte 1, pero sin
+    <code>null</code> de por medio y sin índices:</p>
+
+  <pre><code>public static Producto buscarPorSku(ArrayList&lt;Producto&gt; inventario, String sku) {
+    for (Producto producto : inventario) {
+        if (producto.getSku().equals(sku)) {
+            return producto;
+        }
+    }
+    return null;
+}</code></pre>
+
+  <p>Compara este método con el equivalente sobre un arreglo: desapareció la comprobación de <code>null</code> (una
+    lista no tiene casillas vacías) y desapareció el índice. Menos código, menos formas de equivocarse.</p>
+
+  <p>Ahora, la sorpresa de <code>contains</code> con objetos propios:</p>
+
+  <div class="filename">Contiene.java</div>
+  <pre><code>ArrayList&lt;Producto&gt; inventario = new ArrayList&lt;&gt;();
+inventario.add(new Producto("P01", "Teclado", 150000.0));
+
+Producto buscado = new Producto("P01", "Teclado", 150000.0);   // otro objeto, mismos datos
+
+System.out.println("¿La lista contiene un producto igual? " + inventario.contains(buscado));
+System.out.println("¿Y el mismo objeto que agregamos? " + inventario.contains(inventario.get(0)));</code></pre>
+
+  <p class="salida-label">salida</p>
+  <div class="salida">¿La lista contiene un producto igual? false
+¿Y el mismo objeto que agregamos? true</div>
+
+  <p><code>contains</code> compara con <code>equals</code>, y si tu clase no lo define, hereda el de
+    <code>Object</code>, que compara <strong>identidad</strong>: "¿son exactamente el mismo objeto en memoria?".
+    Dos productos con los mismos datos son objetos distintos, así que la respuesta es <code>false</code>. Lo mismo
+    pasa con <code>remove(objeto)</code> y con <code>indexOf</code>.</p>
+
+  <p>Por eso, mientras tus clases no definan <code>equals</code>, busca comparando el campo que identifica al
+    objeto (el SKU, la cédula, el ISBN) con un <code>for</code>, como en el método de arriba. Escribir
+    <code>equals</code> correctamente es tema de la Parte 3.</p>
+
+  <section class="ejercicio" data-id="2.6">
+    <header>
+      <span class="ej-num">Ejercicio 2.6</span>
+      <h3>Buscar por SKU</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Completa los dos métodos: <code>buscarPorSku</code>, que devuelve el producto con ese SKU o
+      <code>null</code>, y <code>cuantosCuestanMasDe</code>, que cuenta los productos por encima de un precio.</p>
+    <div class="filename">ejercicios/parte2/06-buscar-por-sku/Inventario.java</div>
+    <pre><code>public static Producto buscarPorSku(ArrayList&lt;Producto&gt; productos, String sku) { /* TODO */ }
+
+public static int cuantosCuestanMasDe(ArrayList&lt;Producto&gt; productos, double precio) { /* TODO */ }</code></pre>
+    <div class="comando">./verificar.sh 2.6</div>
+  </section>
+
+  <section class="ejercicio" data-id="2.7">
+    <header>
+      <span class="ej-num">Ejercicio 2.7</span>
+      <h3>Estadísticas del curso</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Completa <code>promedio</code>, que devuelve el promedio de las notas (y <code>0.0</code> con el curso
+      vacío), y <code>mejor</code>, que devuelve el estudiante con la nota más alta (y <code>null</code> con el
+      curso vacío).</p>
+    <div class="filename">ejercicios/parte2/07-estadisticas-del-curso/Curso.java</div>
+    <pre><code>public static double promedio(ArrayList&lt;Estudiante&gt; curso)   { /* TODO */ }
+
+public static Estudiante mejor(ArrayList&lt;Estudiante&gt; curso)  { /* TODO */ }</code></pre>
+    <p>Si hay empate en la nota más alta, gana el que aparece primero en la lista. Eso se consigue con un detalle
+      diminuto: comparar con <code>&gt;</code> y no con <code>&gt;=</code>. Piensa por qué.</p>
+    <div class="comando">./verificar.sh 2.7</div>
+  </section>
+
+  <section class="ejercicio" data-id="2.8">
+    <header>
+      <span class="ej-num">Ejercicio 2.8</span>
+      <h3>Sin repetidos</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Completa <code>sinRepetidos</code>, que devuelve una lista nueva con las mismas palabras pero sin repetir,
+      conservando el orden de la primera aparición.</p>
+    <div class="filename">ejercicios/parte2/08-sin-repetidos/Listas.java</div>
+    <pre><code>public static ArrayList&lt;String&gt; sinRepetidos(ArrayList&lt;String&gt; palabras) {
+    // TODO
+}</code></pre>
+    <p>Con <code>contains</code> sobre la lista que vas construyendo, el método sale en cinco líneas. Aquí sí
+      funciona bien porque son <code>String</code>, que tienen su propio <code>equals</code>.</p>
+    <div class="comando">./verificar.sh 2.8</div>
+  </section>
+
+  <h2>2.6 Qué hace un ArrayList por dentro</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Sabes que por dentro hay un arreglo, y qué pasa cuando se llena.</li>
+      <li>Distingues tamaño de capacidad.</li>
+      <li>Sabes cómo evitar redimensionamientos cuando conoces el tamaño de antemano.</li>
+    </ul>
+  </div>
+
+  <p>No hay magia: por dentro, un <code>ArrayList</code> guarda sus elementos en un arreglo normal
+    (<code>Object[] elementData</code>) y lleva un contador de cuántos hay. Igualito a tu agenda del ejercicio
+    1.10. Cuando el arreglo interno se llena, crea uno más grande, copia todo y descarta el viejo. La única
+    diferencia con tu agenda es cuánto crece: la tuya duplicaba, y <code>ArrayList</code> crece
+    <strong>1.5 veces</strong>.</p>
+
+  <p>Conviene separar dos palabras que suenan parecido:</p>
+  <ul>
+    <li><strong>Tamaño</strong> (<code>size()</code>): cuántos elementos hay de verdad. Es lo único que tú ves.</li>
+    <li><strong>Capacidad</strong>: cuántas casillas tiene el arreglo interno. No se ve desde fuera, y por eso el
+      curso no te pide calcularla.</li>
+  </ul>
+
+  <p>Una lista creada con <code>new ArrayList&lt;&gt;()</code> arranca con capacidad 10. Si le agregas 500
+    elementos, esto es lo que ocurre a tus espaldas:</p>
+
+  <table class="resumen-tabla">
+    <tr><th>Ampliación</th><th>Capacidad</th><th>Elementos copiados</th></tr>
+    <tr><td>1</td><td>10 → 15</td><td>10</td></tr>
+    <tr><td>2</td><td>15 → 22</td><td>15</td></tr>
+    <tr><td>3</td><td>22 → 33</td><td>22</td></tr>
+    <tr><td>…</td><td>…</td><td>…</td></tr>
+    <tr><td>10</td><td>366 → 549</td><td>366</td></tr>
+    <tr><td colspan="2"><strong>Total</strong></td><td><strong>10 ampliaciones, 1.084 copias</strong></td></tr>
+  </table>
+
+  <p>Suena caro, pero fíjate en el patrón: cada ampliación es más grande que la anterior, así que ocurren cada vez
+    menos seguido. Repartido entre los 500 <code>add</code>, el costo promedio de agregar sigue siendo constante
+    (se dice que <code>add</code> es <em>O(1) amortizado</em>). Aun así quedan dos desperdicios: el trabajo de
+    copiar y las 49 casillas que sobran al final (549 para 500 elementos).</p>
+
+  <p>Si sabes de antemano más o menos cuántos elementos vas a meter, se lo dices al crear la lista y no hay ninguna
+    ampliación:</p>
+
+  <pre><code>ArrayList&lt;Producto&gt; carrito = new ArrayList&lt;&gt;(500);   // capacidad inicial, no tamaño</code></pre>
+
+  <div class="box nota">
+    <h4>Ojo con ese número</h4>
+    <p><code>new ArrayList&lt;&gt;(500)</code> no crea 500 elementos: la lista sigue vacía y
+      <code>size()</code> devuelve <code>0</code>. Solo reserva el espacio por adelantado.</p>
+  </div>
+
+  <div class="quiz" data-respuesta="c">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">¿Qué devuelve <code>size()</code> justo después de
+      <code>new ArrayList&lt;&gt;(100)</code>?</p>
+    <div class="ops">
+      <button data-op="a">100</button>
+      <button data-op="b">10, la capacidad por defecto</button>
+      <button data-op="c">0</button>
+    </div>
+    <p class="fb">Cero: la lista está vacía. El 100 es capacidad (casillas reservadas por dentro), no elementos.
+      Confundir las dos cosas es el error clásico con este constructor.</p>
+  </div>
+
+  <h2>2.7 List o ArrayList: programar hacia la interfaz</h2>
+
+  <p>En código profesional vas a ver esta declaración mucho más que la que hemos usado:</p>
+
+  <pre><code>List&lt;Producto&gt; inventario = new ArrayList&lt;&gt;();   // requiere import java.util.List;</code></pre>
+
+  <p><code>List</code> es una <strong>interfaz</strong>: dice qué se le puede pedir a una lista
+    (<code>add</code>, <code>get</code>, <code>remove</code>, <code>size</code>…) pero no cómo se hace.
+    <code>ArrayList</code> es una <strong>implementación</strong>: una de las formas de cumplir ese contrato, usando
+    un arreglo por dentro. Hay otras, como <code>LinkedList</code>.</p>
+
+  <p>Declarar la variable como <code>List</code> y construirla como <code>ArrayList</code> significa "necesito una
+    lista; hoy uso esta". Si mañana cambias de implementación, cambias una sola línea y el resto del programa sigue
+    igual. Por eso los métodos que reciben listas se escriben así:</p>
+
+  <pre><code>public static double valorTotal(List&lt;Producto&gt; productos) { ... }</code></pre>
+
+  <p>Ese método acepta un <code>ArrayList</code>, un <code>LinkedList</code> o cualquier otra lista. Si lo
+    declararas como <code>ArrayList</code>, estarías exigiendo una implementación concreta sin necesidad.</p>
+
+  <section class="ejercicio" data-id="2.9">
+    <header>
+      <span class="ej-num">Ejercicio 2.9</span>
+      <h3>El inventario</h3>
+      <span class="estrellas">★★★</span>
+    </header>
+    <p>Una clase que administra su propia lista. Completa los cinco métodos de <code>Inventario</code>.</p>
+    <div class="filename">ejercicios/parte2/09-el-inventario/Inventario.java</div>
+    <pre><code>private ArrayList&lt;Producto&gt; productos = new ArrayList&lt;&gt;();
+
+public void agregar(Producto producto)      { /* TODO */ }
+public int cantidad()                       { /* TODO */ }
+public Producto buscarPorSku(String sku)    { /* TODO */ }
+public boolean eliminar(String sku)         { /* TODO */ }
+public double valorTotal()                  { /* TODO */ }</code></pre>
+    <p>Para <code>eliminar</code>, lo más limpio es reutilizar tu propio <code>buscarPorSku</code>: si devuelve
+      <code>null</code> no hay nada que borrar, y si devuelve un producto se lo pasas a <code>remove</code>. Fíjate
+      que ahí <code>remove(objeto)</code> sí funciona sin <code>equals</code>, porque es exactamente el mismo objeto
+      que está en la lista.</p>
+    <div class="comando">./verificar.sh 2.9</div>
+  </section>
+
+  <section class="ejercicio" data-id="2.10">
+    <header>
+      <span class="ej-num">Ejercicio 2.10</span>
+      <h3>La agenda, versión lista</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Vuelve la agenda del ejercicio 1.9, con los mismos cinco métodos públicos, pero ahora por dentro es una
+      lista. Nadie que use la agenda nota el cambio: lo único que cambia es que ya no hay límite de 10 contactos y
+      que <code>agregar</code> siempre devuelve <code>true</code>.</p>
+    <div class="filename">ejercicios/parte2/10-la-agenda-version-lista/Agenda.java</div>
+    <pre><code>private ArrayList&lt;Contacto&gt; contactos = new ArrayList&lt;&gt;();
+
+public boolean agregar(Contacto contacto) { /* TODO */ }
+public Contacto buscar(String nombre)     { /* TODO */ }
+public boolean eliminar(String nombre)    { /* TODO */ }
+public int cantidad()                     { /* TODO */ }
+public Contacto contactoEn(int indice)    { /* TODO */ }</code></pre>
+    <p>Cuando termines, abre tu solución del 1.9 al lado de esta. El <code>eliminar</code> con <em>shifting</em> de
+      dos bucles anidados se convierte en dos líneas, y el contador <code>cantidad</code> desaparece. Ese es,
+      resumido, el argumento entero de esta parte.</p>
+    <div class="comando">./verificar.sh 2.10</div>
+  </section>
+
+  <h2>2.8 Resumen de la Parte 2</h2>
+
+  <table class="resumen-tabla">
+    <tr><th>Operación</th><th>Cómo</th><th>Costo</th></tr>
+    <tr><td>Consultar por índice</td><td><code>get(i)</code></td><td>Inmediato (O(1))</td></tr>
+    <tr><td>Agregar al final</td><td><code>add(x)</code></td><td>O(1) amortizado (a veces amplía)</td></tr>
+    <tr><td>Insertar o eliminar en el medio</td><td><code>add(i, x)</code>, <code>remove(i)</code></td><td>O(n): corre los siguientes</td></tr>
+    <tr><td>Buscar por contenido</td><td><code>contains</code>, <code>indexOf</code>, un for</td><td>O(n)</td></tr>
+    <tr><td>Tamaño</td><td><code>size()</code></td><td>Inmediato (O(1))</td></tr>
+  </table>
+
+  <div class="box info">
+    <h4>Cosas para recordar</h4>
+    <ul>
+      <li><code>import java.util.ArrayList;</code> y <code>new ArrayList&lt;&gt;()</code>.</li>
+      <li>Genéricos: <code>ArrayList&lt;Integer&gt;</code>, no <code>ArrayList&lt;int&gt;</code>.</li>
+      <li><code>size()</code>, no <code>length</code>; <code>get(i)</code>, no <code>[i]</code>.</li>
+      <li><code>remove(int)</code> borra por posición; <code>remove(Object)</code> por contenido.</li>
+      <li>Nunca elimines dentro de un for-each: usa <code>removeIf</code> o un <code>for</code> hacia atrás.</li>
+      <li><code>contains</code> usa <code>equals</code>: con tus clases, compara el campo que identifica al objeto.</li>
+      <li>Declara <code>List</code>, construye <code>ArrayList</code>.</li>
+    </ul>
+  </div>
+
+  <p>En la Parte 3 dejamos de usar listas sueltas y empezamos a <strong>diseñar con ellas</strong>: encapsularlas
+    dentro de una clase, elegir el elemento más prioritario, migrar código viejo, y armar el sistema de urgencias
+    completo.</p>
+
+  <div class="pager">
+    <a class="prev" href="parte1.html">
+      <span class="dir">Anterior</span><br>
+      <span class="ttl">Parte 1 · Arreglos de objetos</span>
+    </a>
+    <a class="next" href="index.html">
+      <span class="dir">Siguiente</span><br>
+      <span class="ttl">Parte 3 · Diseño con colecciones (próximamente)</span>
+    </a>
+  </div>
+
+</div></main>
+<script src="nav.js"></script>
+</body>
+</html>
