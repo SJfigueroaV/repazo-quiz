@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parte 3 · Diseño con colecciones</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main><div class="content">
+
+  <p class="part-eyebrow">Parte 3</p>
+  <h1>Diseño con colecciones</h1>
+  <p class="lead">Ya sabes usar listas. Esta parte es sobre <em>diseñar</em> con ellas: dónde vive la lista, quién
+    puede tocarla, qué significa que dos objetos sean "el mismo", y cómo se migra código viejo. Termina con el
+    sistema de urgencias completo, construido por pedazos.</p>
+
+  <div class="objetivos">
+    <h4>Al terminar esta parte</h4>
+    <ul>
+      <li>Guardas una lista dentro de una clase sin dejar que nadie la modifique por la espalda.</li>
+      <li>Escribes <code>equals</code> y <code>hashCode</code>, y sabes qué métodos de la lista dependen de ellos.</li>
+      <li>Eliges el elemento más prioritario de una lista, con empates y listas vacías resueltos.</li>
+      <li>Migras una clase de arreglo fijo a lista sin cambiarle la cara al resto del programa.</li>
+      <li>Construyes un sistema completo: la sala de urgencias con triage.</li>
+    </ul>
+  </div>
+
+  <h2>3.1 Una clase que guarda una lista</h2>
+
+  <p>Hasta ahora las listas andaban sueltas: se creaban en un método y se pasaban de un lado a otro. En un programa
+    de verdad la lista casi siempre <strong>vive dentro de una clase</strong> que la cuida: un <code>Equipo</code>
+    con sus jugadores, un <code>Carrito</code> con sus productos, una <code>SalaUrgencias</code> con sus pacientes.
+    Esa clase es la dueña, y es la única que debería poder cambiarla.</p>
+
+  <p>El problema aparece cuando alguien pide ver el contenido. La forma obvia tiene una fuga:</p>
+
+  <div class="filename">EquipoAbierto.java</div>
+  <pre><code>public class EquipoAbierto {
+    private List&lt;Jugador&gt; jugadores = new ArrayList&lt;&gt;();
+
+    public void fichar(Jugador j) { jugadores.add(j); }
+    public int cantidad()         { return jugadores.size(); }
+
+    public List&lt;Jugador&gt; getJugadores() {
+        return jugadores;      // ← entrega la lista interna, tal cual
+    }
+}</code></pre>
+
+  <p>El atributo es <code>private</code>, sí, pero el método regala una referencia a la lista de adentro. Quien la
+    reciba puede hacerle lo que quiera:</p>
+
+  <pre><code>abierto.getJugadores().clear();   // acabo de despedir a todo el equipo desde afuera</code></pre>
+
+  <p class="salida-label">salida</p>
+  <div class="salida">Jugadores: 2
+Después de que alguien llamó clear(): 0
+El equipo cerrado no deja: UnsupportedOperationException
+Jugadores del equipo cerrado: 2</div>
+
+  <p>Hay dos formas de cerrar la fuga, y las dos son válidas:</p>
+
+  <pre><code>// Opción A: devolver una copia. Quien la reciba puede modificarla,
+// pero está modificando SU lista, no la del equipo.
+public List&lt;Jugador&gt; getJugadores() {
+    return new ArrayList&lt;&gt;(jugadores);
+}
+
+// Opción B: devolver una vista de solo lectura. Si intentan modificarla,
+// reciben UnsupportedOperationException (requiere import java.util.Collections).
+public List&lt;Jugador&gt; getJugadores() {
+    return Collections.unmodifiableList(jugadores);
+}</code></pre>
+
+  <div class="box nota">
+    <h4>¿Cuál de las dos?</h4>
+    <p>La copia es más simple de explicar y cuesta O(n). La vista no copia nada y además <em>avisa</em> con una
+      excepción cuando alguien intenta modificarla, lo cual delata el error en vez de esconderlo. Ojo con un
+      detalle: la vista sigue reflejando los cambios que haga el equipo por dentro, y la copia no.</p>
+  </div>
+
+  <p>Fíjate que ninguna de las dos protege a los <code>Jugador</code> en sí: quien reciba la lista puede pedirle
+    sus datos a cada jugador, y si la clase <code>Jugador</code> tuviera <em>setters</em>, podría cambiarlos. Por
+    eso los objetos que se guardan en colecciones suelen tener sus atributos privados y pocos (o ningún) setter.</p>
+
+  <div class="quiz" data-respuesta="c">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">¿Por qué no basta con declarar <code>private List&lt;Jugador&gt; jugadores;</code>?</p>
+    <div class="ops">
+      <button data-op="a">Porque <code>private</code> no funciona con listas</button>
+      <button data-op="b">Porque hay que declararla <code>final</code></button>
+      <button data-op="c">Porque <code>private</code> protege la variable, no el objeto al que apunta</button>
+    </div>
+    <p class="fb"><code>private</code> impide que alguien escriba <code>equipo.jugadores = otraLista</code>, pero si
+      un método entrega la referencia, el objeto lista queda expuesto y se le puede llamar <code>add</code> o
+      <code>clear</code>. <code>final</code> tampoco ayuda: también protege la variable, no el contenido.</p>
+  </div>
+
+  <section class="ejercicio" data-id="3.1">
+    <header>
+      <span class="ej-num">Ejercicio 3.1</span>
+      <h3>La lista que se escapa</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Completa la clase <code>Equipo</code>. Lo importante es <code>getJugadores</code>: puedes devolver una copia
+      o una vista de solo lectura, las pruebas aceptan las dos.</p>
+    <div class="filename">ejercicios/parte3/01-la-lista-que-se-escapa/Equipo.java</div>
+    <pre><code>private List&lt;Jugador&gt; jugadores = new ArrayList&lt;&gt;();
+
+public void fichar(Jugador jugador)     { /* TODO */ }
+public int cantidad()                   { /* TODO */ }
+public List&lt;Jugador&gt; getJugadores()     { /* TODO */ }
+public int golesTotales()               { /* TODO */ }</code></pre>
+    <p>Hay pruebas que llaman <code>add</code> y <code>clear</code> sobre la lista que devuelves y después revisan
+      que el equipo siga intacto.</p>
+    <div class="comando">./verificar.sh 3.1</div>
+  </section>
+
+  <h2>3.2 Cuándo dos objetos son "el mismo"</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Cierras el asunto que quedó abierto en la Parte 2: <code>contains</code> con objetos propios.</li>
+      <li>Escribes <code>equals</code> siguiendo el molde, y entiendes por qué <code>hashCode</code> viene con él.</li>
+    </ul>
+  </div>
+
+  <p>En la Parte 2 viste que <code>contains</code> decía <code>false</code> aunque la lista tuviera un producto con
+    los mismos datos. La razón: <code>contains</code>, <code>indexOf</code> y <code>remove(Object)</code> preguntan
+    <code>equals</code>, y el <code>equals</code> que se hereda de <code>Object</code> compara identidad, o sea
+    "¿son el mismo objeto en memoria?".</p>
+
+  <p>Para que Java sepa qué significa "igual" en tu dominio, se lo dices tú. El molde es siempre el mismo:</p>
+
+  <pre><code>@Override
+public boolean equals(Object obj) {
+    if (this == obj) {
+        return true;                       // 1. el mismo objeto
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+        return false;                      // 2. null u otra clase
+    }
+    Producto otro = (Producto) obj;        // 3. ahora sí puedo tratarlo como Producto
+    return sku.equals(otro.sku);           // 4. comparo lo que identifica al objeto
+}</code></pre>
+
+  <p>Fíjate en el paso 4: un producto no se identifica por su nombre ni por su precio, sino por su
+    <strong>SKU</strong>. Igual que una persona se identifica por su cédula y un libro por su ISBN. Elegir ese
+    campo es la decisión de diseño; el resto es el molde.</p>
+
+  <div class="box peligro">
+    <h4>Si escribes equals, escribe hashCode</h4>
+    <p>Es una regla del lenguaje: <strong>dos objetos iguales deben devolver el mismo <code>hashCode</code></strong>.
+      Si no la cumples, tu clase funcionará en listas pero se comportará de forma errática en estructuras que usan
+      el hash, como <code>HashMap</code> o <code>HashSet</code> (guardas algo y no aparece al buscarlo). Lo normal
+      es delegar en el mismo campo: <code>return sku.hashCode();</code></p>
+  </div>
+
+  <div class="quiz" data-respuesta="b">
+    <h4>Pregunta rápida</h4>
+    <p class="pregunta">Tu <code>Producto</code> ya tiene <code>equals</code> por SKU. ¿Qué hace
+      <code>lista.remove(new Producto("P01", "otro nombre", 0.0))</code>?</p>
+    <div class="ops">
+      <button data-op="a">Nada, porque es otro objeto</button>
+      <button data-op="b">Elimina de la lista el producto cuyo SKU sea P01</button>
+      <button data-op="c">Lanza una excepción porque el nombre y el precio no coinciden</button>
+    </div>
+    <p class="fb"><code>remove(Object)</code> recorre la lista preguntando <code>equals</code>. Como tu
+      <code>equals</code> solo mira el SKU, encuentra el producto P01 y lo borra, sin importar el nombre ni el
+      precio del objeto que le pasaste. Por eso vale la pena pensar bien qué campo identifica al objeto.</p>
+  </div>
+
+  <section class="ejercicio" data-id="3.2">
+    <header>
+      <span class="ej-num">Ejercicio 3.2</span>
+      <h3>equals de verdad</h3>
+      <span class="estrellas">★★★</span>
+    </header>
+    <p>Completa <code>equals</code> y <code>hashCode</code> en <code>Producto</code>. Dos productos son el mismo si
+      tienen el mismo SKU.</p>
+    <div class="filename">ejercicios/parte3/02-equals-de-verdad/Producto.java</div>
+    <pre><code>@Override
+public boolean equals(Object obj) { /* TODO */ }
+
+@Override
+public int hashCode() { /* TODO */ }</code></pre>
+    <p>Las pruebas revisan el molde completo (mismo objeto, <code>null</code>, otra clase, simetría) y después
+      comprueban que <code>contains</code>, <code>indexOf</code> y <code>remove</code> empiezan a funcionar con
+      objetos equivalentes. Ese es el premio de escribir <code>equals</code>.</p>
+    <div class="comando">./verificar.sh 3.2</div>
+  </section>
+
+  <h2>3.3 Elegir un elemento: mínimos, empates y listas vacías</h2>
+
+  <p>"El más barato", "el más crítico", "el que llegó primero". Este patrón aparece en todos los sistemas y tiene
+    tres decisiones escondidas que conviene tomar a propósito:</p>
+
+  <pre><code>public static Producto masBarato(List&lt;Producto&gt; productos) {
+    if (productos.isEmpty()) {
+        return null;                       // 1. ¿qué pasa si la lista está vacía?
+    }
+
+    Producto masBarato = productos.get(0); // 2. arranco con un candidato de verdad
+
+    for (Producto producto : productos) {
+        if (producto.getPrecio() &lt; masBarato.getPrecio()) {   // 3. ¿&lt; o &lt;=?
+            masBarato = producto;
+        }
+    }
+    return masBarato;
+}</code></pre>
+
+  <ol>
+    <li><strong>La lista vacía.</strong> No hay respuesta correcta universal: puedes devolver <code>null</code>,
+      lanzar una excepción o devolver un <code>Optional</code>. Lo que no puedes es ignorar el caso, porque
+      <code>get(0)</code> sobre una lista vacía lanza <code>IndexOutOfBoundsException</code>.</li>
+    <li><strong>El candidato inicial.</strong> Empieza con el primer elemento real, no con un valor inventado como
+      <code>Double.MAX_VALUE</code>. Es el mismo error del ejercicio 1.2 con <code>int mayor = 0</code>.</li>
+    <li><strong>El empate.</strong> Con <code>&lt;</code>, el primero que encontraste se queda con el puesto; con
+      <code>&lt;=</code>, lo desplaza el último. Un solo carácter decide a quién atienden primero, y en el proyecto
+      de esta parte esa diferencia significa qué paciente pasa antes a consulta.</li>
+  </ol>
+
+  <section class="ejercicio" data-id="3.3">
+    <header>
+      <span class="ej-num">Ejercicio 3.3</span>
+      <h3>El más barato</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Completa <code>masBarato</code> (devuelve <code>null</code> con la lista vacía y, en caso de empate, el
+      primero de la lista) y <code>valorTotal</code>.</p>
+    <div class="filename">ejercicios/parte3/03-el-mas-barato/Catalogo.java</div>
+    <pre><code>public static Producto masBarato(List&lt;Producto&gt; productos) { /* TODO */ }
+
+public static double valorTotal(List&lt;Producto&gt; productos)  { /* TODO */ }</code></pre>
+    <p>Fíjate en la firma: recibe <code>List</code>, no <code>ArrayList</code>. Es lo que vimos al final de la
+      Parte 2, y de aquí en adelante lo vamos a escribir siempre así.</p>
+    <div class="comando">./verificar.sh 3.3</div>
+  </section>
+
+  <h2>3.4 Migrar de arreglo fijo a lista</h2>
+
+  <div class="objetivos">
+    <h4>En esta sección</h4>
+    <ul>
+      <li>Ves lado a lado el mismo método escrito con arreglo y con lista.</li>
+      <li>Entiendes por qué un arreglo fijo en el lugar equivocado tumba un sistema.</li>
+    </ul>
+  </div>
+
+  <p>Hay una historia que se cuenta en clase y que resume esta parte. Una tienda en línea implementó el carrito de
+    compras así:</p>
+
+  <pre><code>public class CarritoLegacy {
+    private Producto[] items = new Producto[10];   // tamaño fijo de 10 productos
+    private int contador = 0;
+
+    public void agregar(Producto p) {
+        items[contador] = p;                        // ¡la línea de la tragedia!
+        contador++;
+    }
+}</code></pre>
+
+  <p>Funcionó durante meses. La noche del CyberMonday, el primer cliente que armó un combo de 11 productos
+    reventó su sesión, y detrás de él, miles:</p>
+
+  <p class="salida-label">salida</p>
+  <div class="salida">Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 10 out of bounds for length 10</div>
+
+  <p>El número 10 no fue una decisión técnica, fue una <strong>suposición sobre el mundo</strong>: "nadie compra
+    más de 10 cosas". Los arreglos fijos obligan a hacer esa suposición; las listas, no. Por eso la regla práctica
+    es: si la cantidad de elementos la decide el usuario en tiempo de ejecución (un carrito, una sala de espera,
+    una lista de transacciones), <strong>no uses un arreglo fijo</strong>.</p>
+
+  <p>Migrar no es reescribir el programa: es cambiar el atributo y ajustar los métodos que lo tocaban. La firma
+    pública se conserva, así que el resto del código sigue igual. Este es el antes y después del método más feo,
+    eliminar por ISBN en una biblioteca:</p>
+
+  <pre><code>// ANTES: arreglo fijo, contador manual y shifting
+public boolean eliminarLibro(String isbn) {
+    for (int i = 0; i &lt; cantidadLibros; i++) {
+        if (estanteria[i] != null &amp;&amp; estanteria[i].getIsbn().equals(isbn)) {
+            for (int j = i; j &lt; cantidadLibros - 1; j++) {
+                estanteria[j] = estanteria[j + 1];
+            }
+            estanteria[cantidadLibros - 1] = null;
+            cantidadLibros--;
+            return true;
+        }
+    }
+    return false;
+}
+
+// DESPUÉS: la lista se compacta sola
+public boolean eliminarLibro(String isbn) {
+    return estanteria.removeIf(libro -&gt; libro.getIsbn().equals(isbn));
+}</code></pre>
+
+  <p>Trece líneas contra una. Y desaparecen de un golpe tres fuentes de errores: los índices del shifting, el
+    contador que hay que mantener sincronizado y las casillas <code>null</code> que había que validar.</p>
+
+  <section class="ejercicio" data-id="3.4">
+    <header>
+      <span class="ej-num">Ejercicio 3.4</span>
+      <h3>Migrar la biblioteca</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>La <code>Biblioteca</code> original guardaba los libros en <code>Libro[] estanteria = new Libro[50];</code>.
+      Escríbela con una lista: cinco métodos.</p>
+    <div class="filename">ejercicios/parte3/04-migrar-la-biblioteca/Biblioteca.java</div>
+    <pre><code>private List&lt;Libro&gt; estanteria = new ArrayList&lt;&gt;();
+
+public void agregarLibro(Libro libro)      { /* TODO */ }
+public Libro buscarPorIsbn(String isbn)    { /* TODO */ }
+public boolean eliminarLibro(String isbn)  { /* TODO */ }
+public int cantidadLibros()                { /* TODO */ }
+public List&lt;Libro&gt; librosDe(String autor)  { /* TODO */ }</code></pre>
+    <p>Hay una prueba que mete 120 libros: con el arreglo de 50 habría sido imposible. Y otra que comprueba que
+      <code>librosDe</code> devuelve una lista nueva sin sacar los libros de la biblioteca.</p>
+    <div class="comando">./verificar.sh 3.4</div>
+  </section>
+
+  <h2>3.5 Proyecto: la sala de urgencias</h2>
+
+  <p>Lo que sigue es un sistema completo, construido en seis ejercicios encadenados. Cada uno agrega un método a la
+    clase <code>SalaUrgencias</code>, y las plantillas ya traen resueltos los métodos de los ejercicios anteriores,
+    así que si uno se te atraviesa puedes seguir con el siguiente.</p>
+
+  <p><strong>El dominio.</strong> En urgencias no se atiende por orden de llegada, se atiende por
+    <strong>triage</strong>: una clasificación de 1 a 5 donde <strong>1 es lo más grave</strong> (paro cardíaco,
+    emergencia vital) y 5 lo más leve (cita menor). Entre dos pacientes con el mismo triage, pasa primero el que
+    llegó antes. Esa regla, "el número más bajo gana, y el empate lo rompe la hora de llegada", es el corazón del
+    sistema.</p>
+
+  <section class="ejercicio" data-id="3.5">
+    <header>
+      <span class="ej-num">Ejercicio 3.5</span>
+      <h3>El paciente</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Escribe la clase <code>Paciente</code>: cuatro atributos privados (<code>cedula</code>, <code>nombre</code>,
+      <code>nivelTriage</code>, <code>horaLlegada</code>), sus getters y el <code>toString</code>.</p>
+    <div class="filename">ejercicios/parte3/05-el-paciente/Paciente.java</div>
+    <pre><code>public Paciente(String cedula, String nombre, int nivelTriage, LocalTime horaLlegada) {
+    // TODO: valida el triage y guarda los cuatro atributos
+}</code></pre>
+    <p>La parte interesante es la <strong>validación</strong>: si el triage no está entre 1 y 5, el constructor
+      lanza <code>IllegalArgumentException</code>. Así es imposible que exista un paciente con triage 7, y ningún
+      método posterior tiene que preocuparse por eso. El <code>toString</code> lleva este formato exacto:</p>
+    <div class="salida">Ana Gómez (C.C. 101) - Triage 3 - 08:30</div>
+    <p><code>horaLlegada</code> es un <code>LocalTime</code> (de <code>java.time</code>), que ya sabe imprimirse
+      así y sabe compararse con <code>isBefore</code>.</p>
+    <div class="comando">./verificar.sh 3.5</div>
+  </section>
+
+  <section class="ejercicio" data-id="3.6">
+    <header>
+      <span class="ej-num">Ejercicio 3.6</span>
+      <h3>Registrar pacientes</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Arranca <code>SalaUrgencias</code>: la lista de espera y los tres métodos básicos.</p>
+    <div class="filename">ejercicios/parte3/06-registrar-pacientes/SalaUrgencias.java</div>
+    <pre><code>private List&lt;Paciente&gt; listaEspera = new ArrayList&lt;&gt;();
+
+public void registrarPaciente(Paciente p)       { /* TODO */ }
+public int cantidadEnEspera()                   { /* TODO */ }
+public List&lt;Paciente&gt; pacientesEnEspera()       { /* TODO */ }</code></pre>
+    <p>Dos reglas: registrar <code>null</code> lanza <code>IllegalArgumentException</code> (un <code>null</code>
+      metido en la lista haría explotar todos los demás métodos), y <code>pacientesEnEspera</code> no puede dejar
+      que desde afuera modifiquen la sala, como en el ejercicio 3.1.</p>
+    <div class="comando">./verificar.sh 3.6</div>
+  </section>
+
+  <section class="ejercicio" data-id="3.7">
+    <header>
+      <span class="ej-num">Ejercicio 3.7</span>
+      <h3>Atender al más crítico</h3>
+      <span class="estrellas">★★★</span>
+    </header>
+    <p>El método central del sistema: busca al paciente con el triage más crítico, lo <strong>saca</strong> de la
+      lista y lo devuelve.</p>
+    <div class="filename">ejercicios/parte3/07-atender-al-mas-critico/SalaUrgencias.java</div>
+    <pre><code>public Paciente atenderSiguiente() {
+    // TODO
+}</code></pre>
+    <ul>
+      <li>Más crítico = <strong>número de triage más bajo</strong>.</li>
+      <li>Si hay empate, atiende al que llegó primero (<code>getHoraLlegada().isBefore(...)</code>).</li>
+      <li>Si no hay nadie, devuelve <code>null</code>. Nunca una excepción: una sala vacía es lo normal a las
+        tres de la mañana, no un error.</li>
+    </ul>
+    <p>Es el patrón de la sección 3.3 con dos criterios en vez de uno. Escribe la condición en dos variables
+      booleanas con nombre si se te enreda: se lee mucho mejor que un <code>if</code> de tres líneas.</p>
+    <div class="comando">./verificar.sh 3.7</div>
+  </section>
+
+  <section class="ejercicio" data-id="3.8">
+    <header>
+      <span class="ej-num">Ejercicio 3.8</span>
+      <h3>Filtrar por triage</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Dos consultas que no modifican la sala.</p>
+    <div class="filename">ejercicios/parte3/08-filtrar-por-triage/SalaUrgencias.java</div>
+    <pre><code>public List&lt;Paciente&gt; filtrarPorTriage(int triageObjetivo) { /* TODO */ }
+
+public boolean hayEmergenciaVital()                        { /* TODO */ }</code></pre>
+    <p><code>filtrarPorTriage</code> devuelve una lista nueva (vacía si nadie coincide, nunca <code>null</code>) y
+      los pacientes siguen en la sala. <code>hayEmergenciaVital</code> dice si hay alguien en triage 1; si ya
+      tienes el filtro, sale en una línea reutilizándolo.</p>
+    <div class="comando">./verificar.sh 3.8</div>
+  </section>
+
+  <section class="ejercicio" data-id="3.9">
+    <header>
+      <span class="ej-num">Ejercicio 3.9</span>
+      <h3>Mostrar la sala</h3>
+      <span class="estrellas">★★☆</span>
+    </header>
+    <p>Imprime el estado de la sala como una tabla, en el orden en que llegaron los pacientes y numerando desde 1.</p>
+    <div class="filename">ejercicios/parte3/09-mostrar-la-sala/SalaUrgencias.java</div>
+    <pre><code>public void mostrarSala() {
+    // TODO
+}</code></pre>
+    <p class="salida-label">salida esperada</p>
+    <div class="salida"># | Cédula | Nombre | Triage | Llegada
+1 | 101 | Ana Gómez | 3 | 08:30
+2 | 102 | Bernardo Silva | 1 | 08:35</div>
+    <p>Y con la sala vacía, una sola línea:</p>
+    <div class="salida">La sala de espera está vacía.</div>
+    <p>Aquí necesitas el índice para numerar, así que este es de los pocos casos donde el <code>for</code> con
+      índice le gana al for-each. Las pruebas comparan el texto exacto.</p>
+    <div class="comando">./verificar.sh 3.9</div>
+  </section>
+
+  <section class="ejercicio" data-id="3.10">
+    <header>
+      <span class="ej-num">Ejercicio 3.10</span>
+      <h3>La sala completa</h3>
+      <span class="estrellas">★★★</span>
+    </header>
+    <p>El cierre: vaciar la sala atendiendo a todos en el orden correcto, y una estadística.</p>
+    <div class="filename">ejercicios/parte3/10-la-sala-completa/SalaUrgencias.java</div>
+    <pre><code>public List&lt;Paciente&gt; atenderTodos() { /* TODO */ }
+
+public double promedioTriage()       { /* TODO */ }</code></pre>
+    <p><code>atenderTodos</code> devuelve la lista de atendidos en el orden en que pasaron a consulta y deja la
+      sala vacía. No repitas la lógica del triage: llama a tu propio <code>atenderSiguiente()</code> en un bucle
+      hasta que la sala quede vacía. Esa es la señal de que el diseño quedó bien: los métodos nuevos se apoyan en
+      los que ya tienes.</p>
+    <div class="comando">./verificar.sh 3.10</div>
+  </section>
+
+  <div class="box pro">
+    <h4>Extra (sin corrector): el menú</h4>
+    <p>Si quieres cerrar el proyecto como una aplicación de verdad, escribe una clase <code>Main</code> con un menú
+      de consola sobre un <code>Scanner</code>: registrar paciente, atender siguiente, filtrar por triage, mostrar
+      la sala, salir. Las dos cosas que lo vuelven un ejercicio interesante son que <strong>no se caiga</strong>
+      cuando la sala está vacía (tu <code>atenderSiguiente</code> devuelve <code>null</code>, así que hay que
+      revisarlo) y que aguante que el usuario escriba letras donde pediste un número, lo cual se resuelve leyendo
+      con <code>nextLine()</code> y convirtiendo con <code>Integer.parseInt</code> dentro de un
+      <code>try/catch</code>.</p>
+  </div>
+
+  <h2>3.6 Cierre: qué estructura elegir</h2>
+
+  <p>Después de tres partes, la decisión se reduce a unas pocas preguntas:</p>
+
+  <table class="resumen-tabla">
+    <tr><th>Si…</th><th>Usa</th></tr>
+    <tr><td>Sabes exactamente cuántos elementos hay y no cambia</td><td>Un arreglo (<code>Tipo[]</code>)</td></tr>
+    <tr><td>La cantidad la decide el usuario o el programa en ejecución</td><td><code>List</code> con <code>ArrayList</code></td></tr>
+    <tr><td>Consultas mucho por posición</td><td><code>ArrayList</code> (<code>get</code> es inmediato)</td></tr>
+    <tr><td>Insertas y borras mucho por el medio</td><td><code>LinkedList</code> (o repensar el diseño)</td></tr>
+    <tr><td>Buscas por una clave (cédula, SKU, ISBN)</td><td><code>HashMap</code> — el tema que sigue</td></tr>
+  </table>
+
+  <div class="box info">
+    <h4>Cosas para recordar</h4>
+    <ul>
+      <li>La lista vive dentro de la clase que la cuida; hacia afuera se entrega una copia o una vista.</li>
+      <li><code>private</code> protege la variable, no el objeto al que apunta.</li>
+      <li><code>contains</code>, <code>indexOf</code> y <code>remove(Object)</code> dependen de tu <code>equals</code>.</li>
+      <li>Si escribes <code>equals</code>, escribe <code>hashCode</code>.</li>
+      <li>Al elegir un elemento, decide a propósito qué pasa con la lista vacía y con los empates.</li>
+      <li>Valida en el constructor: un objeto que no puede existir en mal estado simplifica todo lo demás.</li>
+      <li>Un método que se apoya en otros métodos de su propia clase casi siempre está mejor escrito.</li>
+    </ul>
+  </div>
+
+  <p>Y con eso terminaste el curso. Si quieres seguir, el paso natural es <code>HashMap</code> (buscar por clave
+    en vez de recorrer), <code>Comparable</code> y <code>Collections.sort</code> (ordenar listas de tus objetos),
+    y los <em>streams</em> de Java 8, que convierten los recorridos de filtrar y sumar que escribiste aquí en una
+    sola línea.</p>
+
+  <div class="pager">
+    <a class="prev" href="parte2.html">
+      <span class="dir">Anterior</span><br>
+      <span class="ttl">Parte 2 · Listas dinámicas</span>
+    </a>
+    <a class="next" href="index.html">
+      <span class="dir">Volver al</span><br>
+      <span class="ttl">Inicio del curso</span>
+    </a>
+  </div>
+
+</div></main>
+<script src="nav.js"></script>
+</body>
+</html>

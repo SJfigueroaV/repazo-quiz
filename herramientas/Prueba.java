@@ -89,6 +89,23 @@ public class Prueba {
         }
     }
 
+    /** Comprueba que la acción lanza la excepción esperada. */
+    public static void lanza(String descripcion, Class<? extends Throwable> esperada, Runnable accion) {
+        total++;
+        try {
+            accion.run();
+        } catch (Throwable t) {
+            if (esperada.isInstance(t)) {
+                exito(descripcion);
+            } else {
+                fallo(descripcion, "lanzar " + esperada.getSimpleName(),
+                        "lanzó " + t.getClass().getSimpleName());
+            }
+            return;
+        }
+        fallo(descripcion, "lanzar " + esperada.getSimpleName(), "no lanzó ninguna excepción");
+    }
+
     /** Imprime el resultado final y termina con código de salida 0 (todo bien) o 1. */
     public static void resumen() {
         System.out.println();

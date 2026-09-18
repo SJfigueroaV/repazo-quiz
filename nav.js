@@ -7,8 +7,8 @@ const PARTS = [
   { file: "parte3.html", num: "3", title: "Diseño con colecciones" },
 ];
 
-// Ejercicios publicados hasta ahora (se actualiza al publicar cada parte).
-const TOTAL_EJERCICIOS = 20;
+// Ejercicios del curso completo (10 por parte).
+const TOTAL_EJERCICIOS = 30;
 
 const current = location.pathname.split("/").pop() || "index.html";
 

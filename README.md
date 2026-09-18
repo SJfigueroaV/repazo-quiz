@@ -8,11 +8,13 @@ Abre `index.html` en el navegador para empezar.
 
 ## Contenido
 
-| Parte | Tema | Estado |
+| Parte | Tema | Ejercicios |
 |---|---|---|
-| 1 | Arreglos de objetos | **publicada** (10 ejercicios) |
-| 2 | Listas dinámicas (`ArrayList`) | en camino |
-| 3 | Diseño con colecciones + proyecto final | en camino |
+| 1 | Arreglos de objetos | 10 |
+| 2 | Listas dinámicas (`ArrayList`) | 10 |
+| 3 | Diseño con colecciones + sala de urgencias | 10 |
+
+19 secciones, 30 ejercicios y 234 pruebas automáticas.
 
 ## Requisitos
 
@@ -26,7 +28,7 @@ java -version && javac -version
 
 ```bash
 ./verificar.sh          # todos los ejercicios publicados
-./verificar.sh 1        # toda la Parte 1
+./verificar.sh 2        # toda la Parte 2
 ./verificar.sh 1.3      # solo el ejercicio 1.3
 ./verificar.sh 1.3 -s   # corre las pruebas contra la solución modelo
 ```
@@ -34,10 +36,10 @@ java -version && javac -version
 ## Estructura
 
 ```
-├── index.html, parte1.html      material del curso
+├── index.html, parteN.html      material del curso
 ├── styles.css, nav.js           presentación, progreso y quizzes
-├── ejercicios/parte1/NN-nombre/ plantillas con TODO + pruebas
-├── soluciones/parte1/NN-nombre/ soluciones modelo
+├── ejercicios/parteN/NN-nombre/ plantillas con TODO + pruebas
+├── soluciones/parteN/NN-nombre/ soluciones modelo
 ├── herramientas/Prueba.java     librería de pruebas
 └── verificar.sh                 corrector
 ```
